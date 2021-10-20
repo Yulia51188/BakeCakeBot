@@ -16,7 +16,7 @@ bot.
 import logging
 
 from telegram import Update, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -74,6 +74,16 @@ def run_bot(tg_token) -> None:
     updater.idle()
 
 
+def cancel_handler(update, context):
+    if update.message.text == 'Отменить заказ':
+        context.bot.send_message(
+            chat_id = update.effective_chat.id,
+            text = f'Вы отменили размещение заказа :(',
+            reply_markup = main_keyboard(chat_id)
+        )
+        return ConversationHandler.END
+
+
 class Command(BaseCommand):
     help = 'Import module with telegram bot code'
 
@@ -82,3 +92,21 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         run_bot(settings.TG_TOKEN)
+
+        updater = Updater(settings.TG_TOKEN, use_context=True)
+        dispatcher = updater.dispatcher
+
+        conv_handler = ConversationHandler(
+            entry_points=[
+
+            ],
+            states={
+
+            },
+            fallbacks=[
+                MessageHandler(Filters.text, cancel_handler)
+
+            ],
+        )
+    
+    dispatcher.add_handler(conv_handler)
