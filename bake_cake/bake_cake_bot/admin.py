@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Client, OptionCategory
+from .models import Client, OptionCategory, Option
 
 
 class ClientAdmin(admin.ModelAdmin):
@@ -12,5 +12,11 @@ class OptionCategoryAdmin(admin.ModelAdmin):
     list_display = ['title', 'is_mandatory']
 
 
+class OptionAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'price']
+    list_filter = ['category']
+
+
 admin.site.register(Client, ClientAdmin)
 admin.site.register(OptionCategory, OptionCategoryAdmin)
+admin.site.register(Option, OptionAdmin)

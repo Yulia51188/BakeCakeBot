@@ -23,4 +23,22 @@ class OptionCategory(models.Model):
     is_mandatory = models.BooleanField('Обязательная?', default=False)
     
     def __str__(self):
-        return f'{self.title}{self.is_mandatory or " (необязательная)"}'
+        return f'{self.title}'
+
+
+class Option(models.Model):
+    name = models.CharField('Название', max_length=100, db_index=True)
+    price = models.IntegerField('Цена', db_index=True)
+    category = models.ForeignKey('OptionCategory', verbose_name='Категория',
+                                 on_delete=models.CASCADE, db_index=True)
+
+    def __str__(self):
+        return f'{self.category} {self.name}'
+
+
+class Inscription(models.Model):
+    text = models.CharField('Текст надписи', max_length=256)
+    price = models.IntegerField('Цена', db_index=True)
+
+    def __str__(self):
+        return f'{self.text}'
