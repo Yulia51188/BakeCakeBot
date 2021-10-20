@@ -16,3 +16,11 @@ class Client(models.Model):
 
     def __str__(self):
         return f'{self.first_name} {self.last_name} ({self.tg_chat_id})'
+
+
+class OptionCategory(models.Model):
+    title = models.CharField('Название категории', max_length=100)
+    is_mandatory = models.BooleanField('Обязательная?', default=False)
+    
+    def __str__(self):
+        return f'{self.title}{self.is_mandatory or " (необязательная)"}'
