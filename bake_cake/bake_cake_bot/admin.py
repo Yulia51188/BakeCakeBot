@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Client, OptionCategory, Option
+from .models import Client, Category, Option
 
 
 class ClientAdmin(admin.ModelAdmin):
@@ -8,7 +8,7 @@ class ClientAdmin(admin.ModelAdmin):
                     'pd_proccessing_consent', 'address']
 
 
-class OptionCategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(admin.ModelAdmin):
     list_display = ['title', 'is_mandatory']
 
 
@@ -18,5 +18,5 @@ class OptionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Client, ClientAdmin)
-admin.site.register(OptionCategory, OptionCategoryAdmin)
+admin.site.register(Category, CategoryAdmin)
 admin.site.register(Option, OptionAdmin)

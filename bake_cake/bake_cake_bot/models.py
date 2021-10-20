@@ -18,7 +18,7 @@ class Client(models.Model):
         return f'{self.first_name} {self.last_name} ({self.tg_chat_id})'
 
 
-class OptionCategory(models.Model):
+class Category(models.Model):
     title = models.CharField('Название категории', max_length=100)
     is_mandatory = models.BooleanField('Обязательная?', default=False)
     
@@ -29,16 +29,8 @@ class OptionCategory(models.Model):
 class Option(models.Model):
     name = models.CharField('Название', max_length=100, db_index=True)
     price = models.IntegerField('Цена', db_index=True)
-    category = models.ForeignKey('OptionCategory', verbose_name='Категория',
-                                 on_delete=models.CASCADE, db_index=True)
+    category = models.ForeignKey('Category', verbose_name='Категория',
+        on_delete=models.CASCADE, db_index=True, related_name='options')
 
     def __str__(self):
         return f'{self.category} {self.name}'
-
-
-class Inscription(models.Model):
-    text = models.CharField('Текст надписи', max_length=256)
-    price = models.IntegerField('Цена', db_index=True)
-
-    def __str__(self):
-        return f'{self.text}'
