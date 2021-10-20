@@ -50,30 +50,6 @@ def echo(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(update.message.text)
 
 
-def run_bot(tg_token) -> None:
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    updater = Updater(tg_token)
-
-    # Get the dispatcher to register handlers
-    dispatcher = updater.dispatcher
-
-    # on different commands - answer in Telegram
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
-
-    # on non command i.e message - echo the message on Telegram
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
-
-    # Start the Bot
-    updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.idle()
-
-
 def cancel_handler(update, context):
     if update.message.text == 'Отменить заказ':
         context.bot.send_message(
@@ -84,6 +60,47 @@ def cancel_handler(update, context):
         return ConversationHandler.END
 
 
+
+def run_bot(tg_token) -> None:
+    """Start the bot."""
+    # Create the Updater and pass it your bot's token.
+    updater = Updater(tg_token)
+
+    # Get the dispatcher to register handlers
+    dispatcher = updater.dispatcher
+
+    # Dialogue system for ordering a cake
+    conv_handler = ConversationHandler(
+        entry_points=[
+
+        ],
+        states={
+
+        },
+        fallbacks=[
+            MessageHandler(Filters.text, cancel_handler)
+
+        ],
+    )
+    
+    # on different commands - answer in Telegram
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help_command))
+
+    # on non command i.e message - echo the message on Telegram
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
+    # 
+    dispatcher.add_handler(conv_handler)
+
+    # Start the Bot
+    updater.start_polling()
+
+    # Run the bot until you press Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT. This should be used most of the time, since
+    # start_polling() is non-blocking and will stop the bot gracefully.
+    updater.idle()
+
 class Command(BaseCommand):
     help = 'Import module with telegram bot code'
 
@@ -92,21 +109,3 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         run_bot(settings.TG_TOKEN)
-
-        updater = Updater(settings.TG_TOKEN, use_context=True)
-        dispatcher = updater.dispatcher
-
-        conv_handler = ConversationHandler(
-            entry_points=[
-
-            ],
-            states={
-
-            },
-            fallbacks=[
-                MessageHandler(Filters.text, cancel_handler)
-
-            ],
-        )
-    
-    dispatcher.add_handler(conv_handler)
