@@ -4,7 +4,7 @@ from .models import Client
 
 
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ['first_name', 'last_name', 'phone',
+    list_display = ['tg_chat_id', 'first_name', 'last_name', 'phone',
                     'pd_proccessing_consent', 'address']
 
 
