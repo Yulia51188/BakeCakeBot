@@ -148,7 +148,7 @@ def echo(update: Update, context: CallbackContext) -> None:
 
 
 # user registration
-def registration_handler(update, context):
+def registration_handler(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     if update.message.text == 'Регистрация':
         # Отправка файла из папки files
@@ -160,6 +160,8 @@ def registration_handler(update, context):
         )
 
     if update.message.text == 'Согласиться':
+        user_first_name = update.effective_message.chat.first_name
+        user_lst_name = update.effective_message.chat.last_name
         context.bot.send_message(
             chat_id=chat_id,
             text=f'Вы находитесь в главном меню. Выберите нужный пункт.',
