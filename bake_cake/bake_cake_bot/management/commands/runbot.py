@@ -316,11 +316,9 @@ def run_bot(tg_token) -> None:
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
+
 class Command(BaseCommand):
     help = 'Import module with telegram bot code'
-
-    def add_arguments(self, parser):
-        pass
 
     def handle(self, *args, **options):
         run_bot(settings.TG_TOKEN)
