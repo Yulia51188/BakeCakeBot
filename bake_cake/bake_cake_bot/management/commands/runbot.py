@@ -15,8 +15,11 @@ bot.
 
 import logging
 
-from telegram import Update, ForceReply, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
+from telegram import Update, ForceReply 
+from telegram import KeyboardButton, ReplyKeyboardMarkup
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton 
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters 
+from telegram.ext import CallbackContext, ConversationHandler
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -62,13 +65,13 @@ def agreement_keyboard():
         keybord=[
             [
                 KeyboardButton(text='Добавить телефон'),
-                KeyboardButton(text='Отказаться'),
-                
+                KeyboardButton(text='Отказаться')
             ]
         ],
         resize_keyboard=True
     )
     return markup
+
 
 def registration_keyboard():
     markup = ReplyKeyboardMarkup(
@@ -98,12 +101,12 @@ def order_cake_keyboard():
 
 # Cake composition
 def levels_keyboard():
-    markup=InlineKeyboardMarkup(
+    markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton('1 уровень (+400р)', callback_data='+ 400р'),
-                InlineKeyboardButton('2 уровня (+750р)', callback_data='+ 750р'),
-                InlineKeyboardButton('3 уровня (+1100р)', callback_data='+ 1100р'),
+                InlineKeyboardButton('1 уровень (+400р)', callback_data='+400р'),
+                InlineKeyboardButton('2 уровня (+750р)', callback_data='+750р'),
+                InlineKeyboardButton('3 уровня (+1100р)', callback_data='+1100р'),
             ]
         ]
     )
@@ -111,12 +114,12 @@ def levels_keyboard():
 
 
 def form_keyboard():
-    markup=InlineKeyboardMarkup(
+    markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton('Квадрат (+600)', callback_data='+ 600р'),
                 InlineKeyboardButton('Круг (+400)', callback_data='+ 400р'),
-                InlineKeyboardButton('Прямоугольник (+1000)', callback_data='+ 1000р'),
+                InlineKeyboardButton('Прямоугольник (+1000)', callback_data='+1000р'),
             ]
         ]
     )
@@ -124,7 +127,7 @@ def form_keyboard():
 
 
 def topping_keyboard():
-    markup=InlineKeyboardMarkup(
+    markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton('Без топпинга (+0)', callback_data='+ 0р'),
@@ -139,8 +142,8 @@ def topping_keyboard():
     return markup
 
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
+# Define a few command handlers. These usually take the two arguments update
+# and context.
 def start(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
@@ -168,7 +171,7 @@ def registration_handler(update: Update, context: CallbackContext):
         file_handler(chat_id)
         context.bot.send_message(
             chat_id=chat_id,
-            text=f'Ознакомьтесь с политикой по обработке персональных данных.',
+            text='Ознакомьтесь с политикой по обработке персональных данных.',
             reply_markup=registration_keyboard()
         )
 
@@ -177,7 +180,7 @@ def registration_handler(update: Update, context: CallbackContext):
         user_lst_name = update.effective_message.chat.last_name
         context.bot.send_message(
             chat_id=chat_id,
-            text=f'Добавьте свой номер телефона',
+            text='Добавьте свой номер телефона',
             reply_markup=order_cake_keyboard()
         )
     # <- Добавить функцию записи user_registration_db()
@@ -187,23 +190,22 @@ def registration_handler(update: Update, context: CallbackContext):
         if user_input.isdigit():    
             context.bot.send_message(
                 chat_id=chat_id,
-                text=f'Добавьте адрес доставки.',
+                text='Добавьте адрес доставки.',
                 reply_markup=order_cake_keyboard()
-        )
+            )
         else:
             context.bot.send_message(
                 chat_id=chat_id,
-                text=f'Номер телефона указан не верно.'
-                      'Он должен содержать только числа.'
-                      'Повторите ввод!',
+                text='Номер телефона указан не верно.'
+                     'Он должен содержать только числа.'
+                     'Повторите ввод!',
                 reply_markup=order_cake_keyboard()
-        )
+            )
 
-    
     if update.message.text == 'Отказаться':
-            context.bot.send_message(
+        context.bot.send_message(
             chat_id=chat_id,
-            text=f'К сожалению, мы не сможем приготовить Вам торт :((.',
+            text='К сожалению, мы не сможем приготовить Вам торт :((.',
             reply_markup=main_keyboard(chat_id)
         )
 
@@ -223,9 +225,9 @@ def order_cake_handler(update, context):
 
 
 def cancel_handler(update, context):
-    user = update.effective_user
+    # user = update.effective_user
     update.message.reply_text(
-        f'Очень жаль, что вы отменили заказ :((. Возвращайтесь!'
+        'Очень жаль, что вы отменили заказ :((. Возвращайтесь!'
     )
     return ConversationHandler.END
 
@@ -241,7 +243,7 @@ def run_bot(tg_token) -> None:
     # Dialogue system for ordering a cake
     conv_handler = ConversationHandler(
         entry_points=[
-            MessageHandler(Filters.text, order_cake),
+            MessageHandler(Filters.text, order_cake_handler),
         ],
         states={
             NUMBER_LEVELS: [
@@ -273,7 +275,7 @@ def run_bot(tg_token) -> None:
 
         ],
     )
-    
+
     # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
