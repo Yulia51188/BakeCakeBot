@@ -34,3 +34,33 @@ class Option(models.Model):
 
     def __str__(self):
         return f'{self.category} {self.name}'
+
+
+class Cake(models.Model):
+    created_by = models.ForeignKey(
+        'Client',
+        verbose_name='Клиент, собравший торт',
+        related_name='cakes',
+        on_delete=models.CASCADE
+    )
+    options = models.ManyToManyField(
+        'Option',
+        verbose_name='Параметры торта',
+        related_name='used_in_cake',
+        db_index=True,
+    )
+    text = models.CharField(
+        'Надпись на торте',
+        max_length=100,
+        help_text='Используется только если добавлен параметр "Надпись на торте"',
+        blank=True,
+        default=''
+    )
+    is_in_order = models.BooleanField(
+        'Добавлен в заказ?',
+        blank=True,
+        default=False
+    )
+
+    def __str__(self):
+        return f'Торт {self.id} для {self.created_by}'

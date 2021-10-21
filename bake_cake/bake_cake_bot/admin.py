@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Client, Category, Option
+from .models import Cake, Client, Category, Option
 
 
 class ClientAdmin(admin.ModelAdmin):
@@ -17,6 +17,11 @@ class OptionAdmin(admin.ModelAdmin):
     list_filter = ['category']
 
 
+class CakeAdmin(admin.ModelAdmin):
+    list_display = ['created_by', 'is_in_order']
+
+
 admin.site.register(Client, ClientAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Option, OptionAdmin)
+admin.site.register(Cake, CakeAdmin)
