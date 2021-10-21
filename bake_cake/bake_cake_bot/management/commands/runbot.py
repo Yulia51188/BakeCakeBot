@@ -57,6 +57,19 @@ def main_keyboard(chat_id):
         return markup
 
 
+def agreement_keyboard():
+    markup = ReplyKeyboardMarkup(
+        keybord=[
+            [
+                KeyboardButton(text='Добавить телефон'),
+                KeyboardButton(text='Отказаться'),
+                
+            ]
+        ],
+        resize_keyboard=True
+    )
+    return markup
+
 def registration_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
@@ -164,10 +177,28 @@ def registration_handler(update: Update, context: CallbackContext):
         user_lst_name = update.effective_message.chat.last_name
         context.bot.send_message(
             chat_id=chat_id,
-            text=f'Вы находитесь в главном меню. Выберите нужный пункт.',
+            text=f'Добавьте свой номер телефона',
             reply_markup=order_cake_keyboard()
         )
     # <- Добавить функцию записи user_registration_db()
+
+    if update.message.text == 'Добавить телефон':
+        user_input = update.edited_message.text
+        if user_input.isdigit():    
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=f'Добавьте адрес доставки.',
+                reply_markup=order_cake_keyboard()
+        )
+        else:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=f'Номер телефона указан не верно.'
+                      'Он должен содержать только числа.'
+                      'Повторите ввод!',
+                reply_markup=order_cake_keyboard()
+        )
+
     
     if update.message.text == 'Отказаться':
             context.bot.send_message(
