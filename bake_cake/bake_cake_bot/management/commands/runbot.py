@@ -189,10 +189,6 @@ def order_cake_handler(update, context):
     pass
 
 
-def query_handler(update: Update, context: CallbackContext):
-    pass
-
-
 def cancel_handler(update, context):
     user = update.effective_user
     update.message.reply_text(
