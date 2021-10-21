@@ -15,10 +15,10 @@ bot.
 
 import logging
 
-from telegram import Update, ForceReply 
+from telegram import Update, ForceReply
 from telegram import KeyboardButton, ReplyKeyboardMarkup
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters 
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext, ConversationHandler
 
 from django.core.management.base import BaseCommand
@@ -106,7 +106,7 @@ def levels_keyboard():
             [
                 InlineKeyboardButton('1 уровень (+400р)', callback_data='+400р'),
                 InlineKeyboardButton('2 уровня (+750р)', callback_data='+750р'),
-                InlineKeyboardButton('3 уровня (+1100р)', callback_data='+1100р'),
+                InlineKeyboardButton('3 уровня (+1100р)', callback_data='+ 1100р'),
             ]
         ]
     )
@@ -119,7 +119,7 @@ def form_keyboard():
             [
                 InlineKeyboardButton('Квадрат (+600)', callback_data='+ 600р'),
                 InlineKeyboardButton('Круг (+400)', callback_data='+ 400р'),
-                InlineKeyboardButton('Прямоугольник (+1000)', callback_data='+1000р'),
+                InlineKeyboardButton('Прямоугольник (+1000)', callback_data='+ 1000р'),
             ]
         ]
     )
@@ -187,7 +187,7 @@ def registration_handler(update: Update, context: CallbackContext):
 
     if update.message.text == 'Добавить телефон':
         user_input = update.edited_message.text
-        if user_input.isdigit():    
+        if user_input.isdigit():
             context.bot.send_message(
                 chat_id=chat_id,
                 text='Добавьте адрес доставки.',
