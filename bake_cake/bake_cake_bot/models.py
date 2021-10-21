@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 
 
 class Client(models.Model):
@@ -82,6 +83,69 @@ class Cake(models.Model):
         blank=True,
         default=False
     )
+    price = models.IntegerField('Цена торта', default=0)
+
+    def save(self, *args, **kwargs):
+        if self.id and self.options.all():
+            self.price = (
+                self.options
+                .aggregate(total_price=Sum('price'))['total_price']
+            )
+        super(Cake, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f'Торт {self.id} для {self.created_by}'
+        return f'Торт для {self.created_by}, цена {self.price}'
+
+
+class Order(models.Model):
+    ORDER_STATES = [
+        (0, 'Заявка формируется'),
+        (1, 'Заявка обрабатывается'), 
+        (2, 'Торт готовится'), 
+        (3, 'Торт в пути'), 
+        (4, 'Завершен'), 
+    ]
+    status = models.IntegerField(
+        'Статус заказа',
+        choices=ORDER_STATES,
+        default=0
+    )
+
+    client = models.ForeignKey(
+        'Client',
+        verbose_name='Клиент',
+        related_name='orders',
+        on_delete=models.PROTECT,      
+    )
+
+    total_amount = models.IntegerField('Сумма заказа', default=0) 
+    
+    cakes = models.ManyToManyField(
+        'Cake',
+        verbose_name='Торты в заказе',
+        related_name='in_orders',
+    )
+    created_at = models.DateTimeField(
+        'Дата создания заказа',
+        auto_now_add=True
+    )
+    modified_at = models.DateTimeField(
+        'Дата изменения заказа',
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        # Стоимость заказа пересчитывается только в случае,
+        # если заказ еще не перешел к сборке
+        if self.id and self.status < 2:
+            self.total_amount = (
+                self.cakes
+                .aggregate(total_price=Sum('price'))['total_price']
+            )
+        super(Order, self).save(*args, **kwargs)
+
+    def get_order_states(self):
+        return self.ORDER_STATES
+
+    def __str__(self):
+        return f'Заказ {self.id} на сумму {self.total_amount}'
