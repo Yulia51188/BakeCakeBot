@@ -33,9 +33,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-option_categories = None
-category_index = None
-current_cake_id = None
+_option_categories = None
+_category_index = None
+_current_cake_id = None
 
 
 class States(Enum):
@@ -53,6 +53,7 @@ class States(Enum):
     ORDER_DETAILS = 11
     CREATE_CAKE = 12
     FINISH_CAKE = 13
+    ORDERING = 14
 
 
 def parse_order_id(input_string):
@@ -123,167 +124,41 @@ def create_options_keyboard(category):
     )
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)            
 
-# def contact_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         keybord=[
-#             [
-#                 KeyboardButton(text='Добавить телефон'),
-#                 KeyboardButton(text='Отказаться')
-#             ]
-#         ],
-#         resize_keyboard=True
-#     )
-#     return markup
+
+def create_to_order_keyboard():
+    keyboard = [
+        [KeyboardButton(text='Оформить заказ')],
+        [KeyboardButton(text='В главное меню')]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)     
 
 
-# def address_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         keybord=[
-#             [
-#                 KeyboardButton(text='Добавить адрес'),
-#                 KeyboardButton(text='Отказаться')
-#             ]
-#         ],
-#         resize_keyboard=True
-#     )
-#     return markup
-
-
-# def registration_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         keyboard=[
-#             [
-#                 KeyboardButton(text='Согласиться'),
-#                 KeyboardButton(text='Отказаться'),
-#             ]
-#         ],
-#         resize_keyboard=True
-#     )
-#     return markup
-
-
-# def order_cake_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         keyboard=[
-#             [
-#                 KeyboardButton(text='Заказать торт'),
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ],
-#         resize_keyboard=True
-#     )
-#     return markup
-
-
-# # Cake composition
-# def layers_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         inline_keyboard=[
-#             [
-#                 KeyboardButton(text='1 уровень (+400р)'),
-#                 KeyboardButton(text='2 уровня (+750р)'),
-#                 KeyboardButton(text='3 уровня (+1100р)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ]
-#     )
-#     return markup
-
-
-# def form_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         inline_keyboard=[
-#             [
-#                 KeyboardButton(text='Квадрат (+600)'),
-#                 KeyboardButton(text='Круг (+400)'),
-#                 KeyboardButton(text='Прямоугольник (+1000)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ]
-#     )
-#     return markup
-
-
-# def topping_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         inline_keyboard=[
-#             [
-#                 KeyboardButton(text='Без топпинга (+0)'),
-#                 KeyboardButton(text='Белый соус (+200)'),
-#                 KeyboardButton(text='Карамельный сироп (+180)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Клубничный сироп (+300)'),
-#                 KeyboardButton(text='Черничный сироп (+350)'),
-#                 KeyboardButton(text='Молочный шоколад (+200)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ]
-#     )
-#     return markup
-
-
-# def berry_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         inline_keyboard=[
-#             [
-#                 KeyboardButton(text='Ежевика (+400)'),
-#                 KeyboardButton(text='Малина (+300)'),
-#                 KeyboardButton(text='Голубика (+450)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Клубника (+500)'),
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ]
-#     )
-#     return markup
-
-
-# def decor_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         inline_keyboard=[
-#             [
-#                 KeyboardButton(text='Фисташки (+300)'),
-#                 KeyboardButton(text='Безе (+400)'),
-#                 KeyboardButton(text='Фундук (+350)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Пекан (+300)'),
-#                 KeyboardButton(text='Маршмеллоу (+200)'),
-#                 KeyboardButton(text='Фундук (+300)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Марципан (+280)'),
-#                 KeyboardButton(text='Без декора'),
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ]
-#     )
-#     return markup
-
-
-# def lettering_keyboard():
-#     markup = ReplyKeyboardMarkup(
-#         inline_keyboard=[
-#             [
-#                 KeyboardButton(text='Инпут ввода (+500)'),
-#             ],
-#             [
-#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
-#             ]
-#         ]
-#     )
-#     return markup
+def create_order_comfirm_keyboard():
+    keyboard = [
+        [KeyboardButton(text='Подтвердить заказ')],
+        [KeyboardButton(text='Изменить телефон')],
+        [KeyboardButton(text='Изменить адрес')],
+        [KeyboardButton(text='Отменить')],
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)      
 
 
 # Function to get or post data to DB
+def create_new_order(cake_id, chat_id):
+    cake = Cake.objects.get(id=cake_id)
+    client = Client.objects.get(tg_chat_id=chat_id)
+    
+    order = Order.objects.create(
+        client=client,
+    )
+    order.cakes.set([cake])
+    order.save()
+    
+    cake.is_in_order = True
+    cake.save()
+    return order
+
+
 def get_client_entry(chat_id, tg_user):
     client, is_new = Client.objects.get_or_create(tg_chat_id=chat_id)
     logger.info(f'Get client from DB: {client}, {is_new}')
@@ -388,33 +263,66 @@ def send_option_choices(update, category):
 
 
 def get_next_category(update, category_number):
-    global category_index
-    category_index += 1
-    logger.info(f'Next {category_index}/{len(option_categories)}')
+    
+    global _category_index
+    _category_index += 1
+    
+    logger.info(f'Next {_category_index}/{len(_option_categories)}')
   
-    if category_index >= len(option_categories):
-        category_index = None
-        logger.info('Options has been chosen')
-        update.message.reply_text(
-            text='Торт готов!',
-        ) 
+    if _category_index >= len(_option_categories):
+        invite_to_ordering(update)
         return States.FINISH_CAKE
 
-    send_option_choices(update, option_categories[category_index])
+    send_option_choices(update, _option_categories[_category_index])
     return States.CREATE_CAKE
+
+
+def invite_to_ordering(update):
+    global _category_index
+    global _current_cake_id
+
+    _category_index = None
+    logger.info('Options has been chosen')
+    
+    update.message.reply_text(
+        text='Торт готов!',
+        reply_markup=create_to_order_keyboard()
+    ) 
+    return
+
+
+def send_order_info(update, order):
+    update.message.reply_text(dedent(f'''\
+        Заказ №{order.id}
+
+        Количество тортов в заказе: {order.cakes.count()}
+        Стоимость заказа: {order.total_amount}
+
+        Имя получателя: {order.client.first_name} {order.client.last_name}
+        Телефон: {order.client.phone}
+        Адрес доставки: {order.client.address}'''))
+    return
+
+
+def invite_to_confirm_order(update):
+    update.message.reply_text(
+        text='Проверьте свой заказ',
+        reply_markup=create_order_comfirm_keyboard()
+    )
+    return    
 
 
 # States handlers
 def handle_return_to_menu(update, context):
-    global category_index
-    global current_cake_id
+    global _category_index
+    global _current_cake_id
     
-    logger.info(f'Delete cake {current_cake_id}')
-    if current_cake_id:
-        logger.info(f'Delete cake {current_cake_id}')
-        delete_cake(current_cake_id)
-    category_index = None
-    current_cake_id = None
+    logger.info(f'Delete cake {_current_cake_id}')
+    if _current_cake_id:
+        logger.info(f'Delete cake {_current_cake_id}')
+        delete_cake(_current_cake_id)
+    _category_index = None
+    _current_cake_id = None
 
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
@@ -478,43 +386,34 @@ def handle_order_details(update, context):
     logger.info(f'Parse order id: {order_id}')
     order = get_order_details(order_id)
     
-    update.message.reply_text(dedent(f'''\
-        Заказ №{order.id}
-
-        Количество тортов в заказе: {order.cakes.count()}
-        Стоимость заказа: {order.total_amount}
-
-        Имя получателя: {order.client.first_name} {order.client.last_name}
-        Телефон: {order.client.phone}
-        Адрес доставки: {order.client.address}'''))
-
+    send_order_info(update, order)
     return States.ORDER_DETAILS
 
 
 def handle_create_cake(update, context):
-    global option_categories
-    global category_index
-    global current_cake_id
+    global _option_categories
+    global _category_index
+    global _current_cake_id
 
-    if category_index is None:
+    if _category_index is None:
         # Подгружаем категории и создаем клавиатуру
-        option_categories = list(load_categories())
-        category_index = 0
-        current_cake_id = create_new_cake(update.message.chat_id)
-        send_option_choices(update, option_categories[category_index])
-        logger.info(f'Send {category_index}/{len(option_categories)}')
+        _option_categories = list(load_categories())
+        _category_index = 0
+        _current_cake_id = create_new_cake(update.message.chat_id)
+        send_option_choices(update, _option_categories[_category_index])
+        logger.info(f'Send {_category_index}/{len(_option_categories)}')
         return States.CREATE_CAKE
 
     option_id = parse_option_id(update.message.text)
-    add_option_to_cake(option_id, current_cake_id)
-    logger.info(f'Add option {option_id} to cake {current_cake_id}')
+    add_option_to_cake(option_id, _current_cake_id)
+    logger.info(f'Add option {option_id} to cake {_current_cake_id}')
 
-    return get_next_category(update, len(option_categories))
+    return get_next_category(update, len(_option_categories))
 
 
 def handle_skip_option(update, context):
-    global option_categories
-    return get_next_category(update, len(option_categories))
+    global _option_categories
+    return get_next_category(update, len(_option_categories))
 
 
 def handle_finish_cake(update, context):
@@ -523,6 +422,20 @@ def handle_finish_cake(update, context):
     ) 
     return States.FINISH_CAKE
 
+
+def handle_create_order(update, context):
+    global _current_cake_id
+
+    order = create_new_order(_current_cake_id, update.message.chat_id)
+    _current_cake_id = None
+
+    send_order_info(update, order)
+    invite_to_confirm_order(update)
+    return States.ORDERING
+
+
+def handle_confirm_order(update, context):
+    pass   
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
 #     chat_id = update.effective_chat.id
@@ -682,8 +595,18 @@ def run_bot(tg_token) -> None:
                     handle_return_to_menu,
                 ),
                 MessageHandler(
-                    Filters.text & ~Filters.command,
-                    handle_finish_cake
+                    Filters.regex('^Оформить заказ$'),
+                    handle_create_order,
+                ),
+            ],
+            States.ORDERING: [
+                MessageHandler(
+                    Filters.regex('^Подтвердить$'),
+                    handle_confirm_order,
+                ),
+                MessageHandler(
+                    Filters.regex('^Отменить$'),
+                    handle_return_to_menu,
                 ),
             ],
             States.ORDER_DETAILS: [
