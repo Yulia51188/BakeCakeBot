@@ -292,8 +292,11 @@ def invite_to_ordering(update):
 
 
 def send_order_info(update, order):
+    orders_states = dict(order.get_order_states())
+    logger.info(f'States {orders_states}')
     update.message.reply_text(dedent(f'''\
         Заказ №{order.id}
+        Статус заказа: {orders_states[order.status]}
 
         Количество тортов в заказе: {order.cakes.count()}
         Стоимость заказа: {order.total_amount}
