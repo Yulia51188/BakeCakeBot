@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 _option_categories = None
 _category_index = None
 _current_cake_id = None
+_current_order_id = None
 
 
 class States(Enum):
@@ -54,6 +55,8 @@ class States(Enum):
     CREATE_CAKE = 12
     FINISH_CAKE = 13
     ORDERING = 14
+    CHANGE_PHONE = 15
+    CHANGE_ADDRESS = 16
 
 
 def parse_order_id(input_string):
@@ -244,7 +247,8 @@ def request_for_input_address(update):
     return States.INPUT_ADDRESS
 
 
-def invite_user_to_main_menu(client, update):
+def invite_user_to_main_menu(update):
+    client = Client.objects.get(tg_chat_id=update.message.chat_id)
     is_any_order = client.orders.exists()
     logger.info(f'CLient {client} has orders? {is_any_order}')
     update.message.reply_text(
@@ -307,7 +311,8 @@ def send_order_info(update, order):
     return
 
 
-def invite_to_confirm_order(update):
+def invite_to_confirm_order(update, order):
+    send_order_info(update, order)
     update.message.reply_text(
         text='Проверьте свой заказ',
         reply_markup=create_order_comfirm_keyboard()
@@ -329,7 +334,7 @@ def handle_return_to_menu(update, context):
 
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
-    return invite_user_to_main_menu(client, update)
+    return invite_user_to_main_menu(update)
 
 
 def handle_authorization(update, context):
@@ -342,7 +347,7 @@ def handle_authorization(update, context):
     if not(client.address):
         return request_for_input_address(update)
     
-    return invite_user_to_main_menu(client, update)
+    return invite_user_to_main_menu(update)
 
 
 def handle_phone_input(update, context):
@@ -359,7 +364,7 @@ def handle_phone_input(update, context):
             text='Пожалуйста, укажите адрес доставки') 
         return States.INPUT_ADDRESS
 
-    return invite_user_to_main_menu(client, update)
+    return invite_user_to_main_menu(update)
 
 
 def handle_address_input(update, context):
@@ -369,7 +374,7 @@ def handle_address_input(update, context):
         f'В профиль добавлен адрес доставки: {client.address}',
     )
 
-    return invite_user_to_main_menu(client, update)
+    return invite_user_to_main_menu(update)
 
 
 def handle_show_orders(update, context):
@@ -428,17 +433,71 @@ def handle_finish_cake(update, context):
 
 def handle_create_order(update, context):
     global _current_cake_id
+    global _current_order_id
 
     order = create_new_order(_current_cake_id, update.message.chat_id)
     _current_cake_id = None
 
-    send_order_info(update, order)
-    invite_to_confirm_order(update)
+    invite_to_confirm_order(update, order)
+
+    _current_order_id = order.id
     return States.ORDERING
 
 
 def handle_confirm_order(update, context):
-    pass   
+    global _current_order_id
+
+    order = Order.objects.get(id=_current_order_id)
+    order.status = 1
+    order.save()
+
+    update.message.reply_text(
+        text=f'Заказ № {_current_order_id} подтвержден'
+    )
+    _current_order_id = None
+    return invite_user_to_main_menu(update)   
+
+
+def handle_request_other_address(update, context):
+    update.message.reply_text(
+        text='Введите адрес доставки'
+    )
+    return States.CHANGE_ADDRESS
+
+
+def handle_request_other_phone(update, context):
+    update.message.reply_text(
+        text='Введите номер телефона для связи'
+    )
+    return States.CHANGE_PHONE
+
+
+def handle_phone_change(update, context):
+    global _current_order_id
+
+    client = add_phone_to_client(update.message.chat_id, update.message.text)
+    
+    update.message.reply_text(
+        f'В профиль добавлен телефон для связи: {client.phone}',
+    )
+    logger.info(f'Add phone {client.phone} for {client.tg_chat_id}')
+
+    order = Order.objects.get(id=_current_order_id)
+    invite_to_confirm_order(update, order)    
+    return States.ORDERING
+
+
+def handle_address_change(update, context):
+    client = add_address_to_client(update.message.chat_id, update.message.text)
+    
+    update.message.reply_text(
+        f'В профиль добавлен адрес доставки: {client.address}',
+    )
+    logger.info(f'Add address {client.address} for {client.tg_chat_id}')
+    
+    order = Order.objects.get(id=_current_order_id)
+    invite_to_confirm_order(update, order)    
+    return States.ORDERING
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
 #     chat_id = update.effective_chat.id
@@ -604,12 +663,32 @@ def run_bot(tg_token) -> None:
             ],
             States.ORDERING: [
                 MessageHandler(
-                    Filters.regex('^Подтвердить$'),
+                    Filters.regex('^Подтвердить заказ$'),
                     handle_confirm_order,
+                ),
+                MessageHandler(
+                    Filters.regex('^Изменить адрес$'),
+                    handle_request_other_address,
+                ),
+                MessageHandler(
+                    Filters.regex('^Изменить телефон$'),
+                    handle_request_other_phone,
                 ),
                 MessageHandler(
                     Filters.regex('^Отменить$'),
                     handle_return_to_menu,
+                ),
+            ],
+            States.CHANGE_PHONE: [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    handle_phone_change
+                ),
+            ],
+            States.CHANGE_ADDRESS: [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    handle_address_change
                 ),
             ],
             States.ORDER_DETAILS: [
