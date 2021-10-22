@@ -120,7 +120,7 @@ class Order(models.Model):
         'Client',
         verbose_name='Клиент',
         related_name='orders',
-        on_delete=models.PROTECT,      
+        on_delete=models.CASCADE,      
     )
 
     total_amount = models.IntegerField('Сумма заказа', default=0) 
