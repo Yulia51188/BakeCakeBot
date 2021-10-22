@@ -23,214 +23,232 @@ from telegram.ext import CallbackContext, ConversationHandler
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
+from bake_cake_bot.models import Client
+from enum import Enum
+
 # Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
 )
 
 logger = logging.getLogger(__name__)
 
 
-WHAITING_CLICK, LAYERS, FORM, TOPPING, BERRIES, DECOR, LETTERING, ADDRESS = range(6)
+class States(Enum):
+    WHAITING_CLICK = 0
+    LAYERS = 1
+    FORM = 2
+    TOPPING = 3
+    BERRIES = 4
+    DECOR = 5
+    LETTERING = 6
+    ADDRESS = 7
 
 
 # Dialogue keyboards
-def main_keyboard(chat_id):
-    # if not Profile.objects.get(user_id__contains=chat_id):
-    if chat_id:
-        markup = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    KeyboardButton(text='Регистрация'),
-                ]
-            ],
-            resize_keyboard=True
-        )
-        return markup
-    else:
-        markup = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    KeyboardButton(text='Собрать торт'),
-                    KeyboardButton(text='Ваши заказы')
-                ]
-            ],
-            resize_keyboard=True
-        )
-        return markup
+# def main_keyboard(chat_id):
+#     # if not Profile.objects.get(user_id__contains=chat_id):
+#     if chat_id:
+#         markup = ReplyKeyboardMarkup(
+#             keyboard=[
+#                 [
+#                     KeyboardButton(text='Регистрация'),
+#                 ]
+#             ],
+#             resize_keyboard=True
+#         )
+#         return markup
+#     else:
+#         markup = ReplyKeyboardMarkup(
+#             keyboard=[
+#                 [
+#                     KeyboardButton(text='Собрать торт'),
+#                     KeyboardButton(text='Ваши заказы')
+#                 ]
+#             ],
+#             resize_keyboard=True
+#         )
+#         return markup
 
 
-def contact_keyboard():
-    markup = ReplyKeyboardMarkup(
-        keybord=[
-            [
-                KeyboardButton(text='Добавить телефон'),
-                KeyboardButton(text='Отказаться')
-            ]
-        ],
-        resize_keyboard=True
-    )
-    return markup
+# def contact_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         keybord=[
+#             [
+#                 KeyboardButton(text='Добавить телефон'),
+#                 KeyboardButton(text='Отказаться')
+#             ]
+#         ],
+#         resize_keyboard=True
+#     )
+#     return markup
 
 
-def address_keyboard():
-    markup = ReplyKeyboardMarkup(
-        keybord=[
-            [
-                KeyboardButton(text='Добавить адрес'),
-                KeyboardButton(text='Отказаться')
-            ]
-        ],
-        resize_keyboard=True
-    )
-    return markup
+# def address_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         keybord=[
+#             [
+#                 KeyboardButton(text='Добавить адрес'),
+#                 KeyboardButton(text='Отказаться')
+#             ]
+#         ],
+#         resize_keyboard=True
+#     )
+#     return markup
 
 
-def registration_keyboard():
-    markup = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text='Согласиться'),
-                KeyboardButton(text='Отказаться'),
-            ]
-        ],
-        resize_keyboard=True
-    )
-    return markup
+# def registration_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         keyboard=[
+#             [
+#                 KeyboardButton(text='Согласиться'),
+#                 KeyboardButton(text='Отказаться'),
+#             ]
+#         ],
+#         resize_keyboard=True
+#     )
+#     return markup
 
 
-def order_cake_keyboard():
-    markup = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text='Заказать торт'),
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ],
-        resize_keyboard=True
-    )
-    return markup
+# def order_cake_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         keyboard=[
+#             [
+#                 KeyboardButton(text='Заказать торт'),
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ],
+#         resize_keyboard=True
+#     )
+#     return markup
 
 
-# Cake composition
-def layers_keyboard():
-    markup = ReplyKeyboardMarkup(
-        inline_keyboard=[
-            [
-                KeyboardButton(text='1 уровень (+400р)'),
-                KeyboardButton(text='2 уровня (+750р)'),
-                KeyboardButton(text='3 уровня (+1100р)'),
-            ],
-            [
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ]
-    )
-    return markup
+# # Cake composition
+# def layers_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         inline_keyboard=[
+#             [
+#                 KeyboardButton(text='1 уровень (+400р)'),
+#                 KeyboardButton(text='2 уровня (+750р)'),
+#                 KeyboardButton(text='3 уровня (+1100р)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ]
+#     )
+#     return markup
 
 
-def form_keyboard():
-    markup = ReplyKeyboardMarkup(
-        inline_keyboard=[
-            [
-                KeyboardButton(text='Квадрат (+600)'),
-                KeyboardButton(text='Круг (+400)'),
-                KeyboardButton(text='Прямоугольник (+1000)'),
-            ],
-            [
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ]
-    )
-    return markup
+# def form_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         inline_keyboard=[
+#             [
+#                 KeyboardButton(text='Квадрат (+600)'),
+#                 KeyboardButton(text='Круг (+400)'),
+#                 KeyboardButton(text='Прямоугольник (+1000)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ]
+#     )
+#     return markup
 
 
-def topping_keyboard():
-    markup = ReplyKeyboardMarkup(
-        inline_keyboard=[
-            [
-                KeyboardButton(text='Без топпинга (+0)'),
-                KeyboardButton(text='Белый соус (+200)'),
-                KeyboardButton(text='Карамельный сироп (+180)'),
-            ],
-            [
-                KeyboardButton(text='Клубничный сироп (+300)'),
-                KeyboardButton(text='Черничный сироп (+350)'),
-                KeyboardButton(text='Молочный шоколад (+200)'),
-            ]
-            [
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ]
-    )
-    return markup
+# def topping_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         inline_keyboard=[
+#             [
+#                 KeyboardButton(text='Без топпинга (+0)'),
+#                 KeyboardButton(text='Белый соус (+200)'),
+#                 KeyboardButton(text='Карамельный сироп (+180)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Клубничный сироп (+300)'),
+#                 KeyboardButton(text='Черничный сироп (+350)'),
+#                 KeyboardButton(text='Молочный шоколад (+200)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ]
+#     )
+#     return markup
 
 
-def berry_keyboard():
-    markup = ReplyKeyboardMarkup(
-        inline_keyboard=[
-            [
-                KeyboardButton(text='Ежевика (+400)'),
-                KeyboardButton(text='Малина (+300)'),
-                KeyboardButton(text='Голубика (+450)'),
-            ],
-            [
-                KeyboardButton(text='Клубника (+500)'),
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ]
-    )
-    return markup
+# def berry_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         inline_keyboard=[
+#             [
+#                 KeyboardButton(text='Ежевика (+400)'),
+#                 KeyboardButton(text='Малина (+300)'),
+#                 KeyboardButton(text='Голубика (+450)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Клубника (+500)'),
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ]
+#     )
+#     return markup
 
 
-def decor_keyboard():
-    markup = ReplyKeyboardMarkup(
-        inline_keyboard=[
-            [
-                KeyboardButton(text='Фисташки (+300)'),
-                KeyboardButton(text='Безе (+400)'),
-                KeyboardButton(text='Фундук (+350)'),
-            ],
-            [
-                KeyboardButton(text='Пекан (+300)'),
-                KeyboardButton(text='Маршмеллоу (+200)'),
-                KeyboardButton(text='Фундук (+300)'),
-            ],
-            [
-                KeyboardButton(text='Марципан (+280)'),
-                KeyboardButton(text='Без декора'),
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ]
-    )
-    return markup
+# def decor_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         inline_keyboard=[
+#             [
+#                 KeyboardButton(text='Фисташки (+300)'),
+#                 KeyboardButton(text='Безе (+400)'),
+#                 KeyboardButton(text='Фундук (+350)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Пекан (+300)'),
+#                 KeyboardButton(text='Маршмеллоу (+200)'),
+#                 KeyboardButton(text='Фундук (+300)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Марципан (+280)'),
+#                 KeyboardButton(text='Без декора'),
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ]
+#     )
+#     return markup
 
 
-def lettering_keyboard():
-    markup = ReplyKeyboardMarkup(
-        inline_keyboard=[
-            [
-                KeyboardButton(text='Инпут ввода (+500)'),
-            ],
-            [
-                KeyboardButton(text='Отменить заказ (в главное меню)'),
-            ]
-        ]
-    )
-    return markup
+# def lettering_keyboard():
+#     markup = ReplyKeyboardMarkup(
+#         inline_keyboard=[
+#             [
+#                 KeyboardButton(text='Инпут ввода (+500)'),
+#             ],
+#             [
+#                 KeyboardButton(text='Отменить заказ (в главное меню)'),
+#             ]
+#         ]
+#     )
+#     return markup
 
 
-# Define a few command handlers. These usually take the two arguments update
-# and context.
-def start(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /start is issued."""
+def get_client_entry(chat_id, tg_user):
+    client, is_new = Client.objects.get_or_create(tg_chat_id=chat_id)
+    if is_new:
+        client.first_name = tg_user.first_name
+        client.last_name = tg_user.last_name
+        client.save()
+    logger.debug(f'Get client from DB: {client}, {is_new}')
+    return client
+
+
+def start(update, context):
     user = update.effective_user
-    update.message.reply_markdown_v2(
-        fr'Привет, {user.mention_markdown_v2()}\!',
-        # reply_markup=ForceReply(selective=True),
-        reply_markup=main_keyboard(user.id)
+    user_account = get_client_entry(update.message.chat_id, user)
+    update.message.reply_text(
+        text=f'Привет, {user.first_name}!',
+        # reply_markup=get_start_keyboard_markup()
     )
-    return WHAITING_CLICK
+    return States.WHAITING_CLICK
 
 
 def help_command(update: Update, context: CallbackContext) -> None:
@@ -244,140 +262,140 @@ def echo(update: Update, context: CallbackContext) -> None:
 
 
 # user registration
-def registration_handler(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    context.bot.send_message(
-        chat_id=chat_id,
-        text='Ознакомьтесь с политикой по обработке персональных данных.',
-        reply_markup=registration_keyboard()
-    )
-    with open("files/personal_data_policy.pdf", 'rb') as file:
-        context.bot.send_document(chat_id=chat_id, document=file)
-    return WHAITING_CLICK
+# def registration_handler(update: Update, context: CallbackContext):
+#     chat_id = update.effective_chat.id
+#     context.bot.send_message(
+#         chat_id=chat_id,
+#         text='Ознакомьтесь с политикой по обработке персональных данных.',
+#         reply_markup=registration_keyboard()
+#     )
+#     with open("files/personal_data_policy.pdf", 'rb') as file:
+#         context.bot.send_document(chat_id=chat_id, document=file)
+#     return WHAITING_CLICK
 
 
-def user_registration_db(update):
-    pass
+# def user_registration_db(update):
+#     pass
 
 
-def agreement_handler(update, context):
-    user_answer = update.effective_message.text
-    chat_id = update.effective_chat.id
-    if user_answer == 'Согласиться':
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Добавьте свой номер телефона.',
-            reply_markup=contact_keyboard(),
-        )
-        return WHAITING_CLICK
+# def agreement_handler(update, context):
+#     user_answer = update.effective_message.text
+#     chat_id = update.effective_chat.id
+#     if user_answer == 'Согласиться':
+#         context.bot.send_message(
+#             chat_id=chat_id,
+#             text='Добавьте свой номер телефона.',
+#             reply_markup=contact_keyboard(),
+#         )
+#         return WHAITING_CLICK
 
-    if user_answer == 'Отказаться':
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Очень жаль, что вы отказались от регистрации :(('
-                 'Возвращайтесь!',
-            reply_markup=main_keyboard(chat_id),
-        )
-        return WHAITING_CLICK
-
-
-def add_phone_handler(update, context):
-    chat_id = update.effective_chat.id
-    user_answer = update.effective_message.text
-    if user_answer.isdigit():
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Добавьте адрес доставки.',
-            reply_markup=contact_keyboard()
-        )
-    else:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Номер телефона имеет не верный формат.'
-                 'Номер телефона должен состоять только из цифр.',
-            reply_markup=contact_keyboard()
-        )
-    return WHAITING_CLICK
+#     if user_answer == 'Отказаться':
+#         context.bot.send_message(
+#             chat_id=chat_id,
+#             text='Очень жаль, что вы отказались от регистрации :(('
+#                  'Возвращайтесь!',
+#             reply_markup=main_keyboard(chat_id),
+#         )
+#         return WHAITING_CLICK
 
 
-def add_address_handler(update, context):
-    chat_id = update.effective_chat.id
-    context.bot.send_message(
-        chat_id=chat_id,
-        text='Адрес добавлен!'
-             'Вы можете заказать торт.',
-        reply_markup=order_cake_keyboard()
-    )
-    return LAYERS
+# def add_phone_handler(update, context):
+#     chat_id = update.effective_chat.id
+#     user_answer = update.effective_message.text
+#     if user_answer.isdigit():
+#         context.bot.send_message(
+#             chat_id=chat_id,
+#             text='Добавьте адрес доставки.',
+#             reply_markup=contact_keyboard()
+#         )
+#     else:
+#         context.bot.send_message(
+#             chat_id=chat_id,
+#             text='Номер телефона имеет не верный формат.'
+#                  'Номер телефона должен состоять только из цифр.',
+#             reply_markup=contact_keyboard()
+#         )
+#     return WHAITING_CLICK
+
+
+# def add_address_handler(update, context):
+#     chat_id = update.effective_chat.id
+#     context.bot.send_message(
+#         chat_id=chat_id,
+#         text='Адрес добавлен!'
+#              'Вы можете заказать торт.',
+#         reply_markup=order_cake_keyboard()
+#     )
+#     return LAYERS
 
 
 # Place an order or redirect the main menu
-def cake_layers_handler(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        'Выберите количество уровней торта',
-        reply_markup=layers_keyboard()
-    )
-    return FORM
+# def cake_layers_handler(update: Update, context: CallbackContext):
+#     update.message.reply_text(
+#         'Выберите количество уровней торта',
+#         reply_markup=layers_keyboard()
+#     )
+#     return FORM
 
 
-def cake_form_handler(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        'Выберите форму торта',
-        reply_markup=form_keyboard()
-    )
-    return TOPPING
+# def cake_form_handler(update: Update, context: CallbackContext):
+#     update.message.reply_text(
+#         'Выберите форму торта',
+#         reply_markup=form_keyboard()
+#     )
+#     return TOPPING
 
 
-def cake_topping_handler(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        'Выберите топпинг',
-        reply_markup=topping_keyboard()
-    )
-    return DECOR
+# def cake_topping_handler(update: Update, context: CallbackContext):
+#     update.message.reply_text(
+#         'Выберите топпинг',
+#         reply_markup=topping_keyboard()
+#     )
+#     return DECOR
 
 
-def cake_decor_handler(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        'Выберите декор',
-        reply_markup=decor_keyboard()
-    )
-    return BERRIES
+# def cake_decor_handler(update: Update, context: CallbackContext):
+#     update.message.reply_text(
+#         'Выберите декор',
+#         reply_markup=decor_keyboard()
+#     )
+#     return BERRIES
 
 
-def cake_berry_handler(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        'Выберите ягоды.',
-        reply_markup=berry_keyboard()
-    )
-    return LETTERING
+# def cake_berry_handler(update: Update, context: CallbackContext):
+#     update.message.reply_text(
+#         'Выберите ягоды.',
+#         reply_markup=berry_keyboard()
+#     )
+#     return LETTERING
 
 
-def cake_lettering_handler(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        'Мы можем разместить на торте любую надпись.'
-        'Например: «С днем рождения!»',
-        reply_markup=lettering_keyboard()
-    )
-    return ADDRESS
+# def cake_lettering_handler(update: Update, context: CallbackContext):
+#     update.message.reply_text(
+#         'Мы можем разместить на торте любую надпись.'
+#         'Например: «С днем рождения!»',
+#         reply_markup=lettering_keyboard()
+#     )
+#     return ADDRESS
 
 
-def order_address_handler(update, context):
-    update.message.reply_text(
-        'Добавьте адрес доставки',
-        reply_markup=order_cake_keyboard()
-    )
-    return ADDRESS
+# def order_address_handler(update, context):
+#     update.message.reply_text(
+#         'Добавьте адрес доставки',
+#         reply_markup=order_cake_keyboard()
+#     )
+#     return ADDRESS
 
 
-def cancel_registration_handler(update, context):
-    chat_id = update.effective_chat.id
-    context.bot.send_message(
-        chat_id=chat_id,
-        text='Вы отказались от регистрации :(('
-             'Необходимо согласие на обработку ПД!',
-        reply_markup=main_keyboard(chat_id)
-    )
-    return ConversationHandler.END
+# def cancel_registration_handler(update, context):
+#     chat_id = update.effective_chat.id
+#     context.bot.send_message(
+#         chat_id=chat_id,
+#         text='Вы отказались от регистрации :(('
+#              'Необходимо согласие на обработку ПД!',
+#         reply_markup=main_keyboard(chat_id)
+#     )
+#     return ConversationHandler.END
 
 
 def cancel_handler(update, context):
@@ -400,175 +418,175 @@ def run_bot(tg_token) -> None:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            WHAITING_CLICK: [
-                MessageHandler(
-                    Filters.regex('^Регистрация$'),
-                    registration_handler,
-                ),
-                MessageHandler(
-                    Filters.regex('^Добавить телефон$'),
-                    add_phone_handler
-                ),
-                MessageHandler(
-                    Filters.regex('^Добавить адрес$'),
-                    add_address_handler,
-                ),
+            States.WHAITING_CLICK: [
+                # MessageHandler(
+                #     Filters.regex('^Регистрация$'),
+                #     registration_handler,
+                # ),
+                # MessageHandler(
+                #     Filters.regex('^Добавить телефон$'),
+                #     add_phone_handler
+                # ),
+                # MessageHandler(
+                #     Filters.regex('^Добавить адрес$'),
+                #     add_address_handler,
+                # ),
             ],
-            LAYERS: [
-                MessageHandler(
-                    Filters.regex('^1 уровень (+400р)$'),
-                    callback=cake_layers_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^2 уровня (+750р)$'),
-                    callback=cake_layers_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^3 уровня (+1100р)$'),
-                    callback=cake_layers_handler,
-                    pass_user_data=True
-                ),
-            ],
-            FORM: [
-                MessageHandler(
-                    Filters.regex('^Квадрат (+600)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Круг (+400)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Прямоугольник (+1000)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-            ],
-            TOPPING: [
-                MessageHandler(
-                    Filters.regex('^Без топпинга (+0)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Белый соус (+200)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Карамельный сироп (+180)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Кленовый сироп (+200)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Клубничный сироп (+300)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Черничный сироп (+350)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Молочный шоколад (+200)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-            ],
-            BERRIES: [
-                MessageHandler(
-                    Filters.regex('^Ежевика (+400)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Малина (+300)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Голубика (+450)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Клубника (+500)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-            ],
-            DECOR: [
-                MessageHandler(
-                    Filters.regex('^Фисташки (+300)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Безе (+400)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Фундук (+350)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Пекан (+300)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Маршмеллоу (+200)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Фундук (+300)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Марципан (+280)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Без декора$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
+            # LAYERS: [
+            #     MessageHandler(
+            #         Filters.regex('^1 уровень (+400р)$'),
+            #         callback=cake_layers_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^2 уровня (+750р)$'),
+            #         callback=cake_layers_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^3 уровня (+1100р)$'),
+            #         callback=cake_layers_handler,
+            #         pass_user_data=True
+            #     ),
+            # ],
+            # FORM: [
+            #     MessageHandler(
+            #         Filters.regex('^Квадрат (+600)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Круг (+400)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Прямоугольник (+1000)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            # ],
+            # TOPPING: [
+            #     MessageHandler(
+            #         Filters.regex('^Без топпинга (+0)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Белый соус (+200)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Карамельный сироп (+180)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Кленовый сироп (+200)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Клубничный сироп (+300)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Черничный сироп (+350)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Молочный шоколад (+200)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            # ],
+            # BERRIES: [
+            #     MessageHandler(
+            #         Filters.regex('^Ежевика (+400)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Малина (+300)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Голубика (+450)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Клубника (+500)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            # ],
+            # DECOR: [
+            #     MessageHandler(
+            #         Filters.regex('^Фисташки (+300)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Безе (+400)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Фундук (+350)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Пекан (+300)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Маршмеллоу (+200)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Фундук (+300)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Марципан (+280)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Без декора$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
 
-            ],
-            LETTERING: [
-                MessageHandler(
-                    Filters.regex('^Инпут ввода (+500)$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-                MessageHandler(
-                    Filters.regex('^Без надписи$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-            ],
-            ADDRESS: [
-                MessageHandler(
-                    Filters.regex('^Добавить адрес доставки$'),
-                    callback=cake_form_handler,
-                    pass_user_data=True
-                ),
-            ]
+            # ],
+            # LETTERING: [
+            #     MessageHandler(
+            #         Filters.regex('^Инпут ввода (+500)$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            #     MessageHandler(
+            #         Filters.regex('^Без надписи$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            # ],
+            # ADDRESS: [
+            #     MessageHandler(
+            #         Filters.regex('^Добавить адрес доставки$'),
+            #         callback=cake_form_handler,
+            #         pass_user_data=True
+            #     ),
+            # ]
         },
         fallbacks=[
             MessageHandler(Filters.text, cancel_handler)
@@ -584,12 +602,12 @@ def run_bot(tg_token) -> None:
     dispatcher.add_handler(conv_handler)
 
     # on non command i.e message - echo the message on Telegram
-    dispatcher.add_handler(
-        MessageHandler(
-            Filters.text & ~Filters.command,
-            echo
-        )
-    )
+    # dispatcher.add_handler(
+    #     MessageHandler(
+    #         Filters.text & ~Filters.command,
+    #         echo
+    #     )
+    # )
 
     # Start the Bot
     updater.start_polling()
