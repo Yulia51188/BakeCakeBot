@@ -374,6 +374,8 @@ def invite_user_to_main_menu(client, update):
 # States handlers
 def handle_return_to_menu(update, context):
     global category_index
+    global current_cake_id
+
     category_index = None
     current_cake_id = None
 
@@ -512,11 +514,17 @@ def handle_skip_option(update, context):
     if category_index > len(option_categories) - 1:
         category_index = None
         current_cake_id = None
-        logger.info('All options are chosen')
+        logger.info('All options are chosen')  
         return States.FINISH_CAKE
 
     return States.CREATE_CAKE
 
+
+def handle_finish_cake(update, context):
+    update.message.reply_text(
+        text='Торт готов!',
+    ) 
+    return invite_user_to_main_menu()
 
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
@@ -575,57 +583,7 @@ def handle_skip_option(update, context):
 #     return AUTHORIZATION
 
 
-# def add_address_handler(update, context):
-#     chat_id = update.effective_chat.id
-#     context.bot.send_message(
-#         chat_id=chat_id,
-#         text='Адрес добавлен!'
-#              'Вы можете заказать торт.',
-#         reply_markup=order_cake_keyboard()
-#     )
-#     return LAYERS
-
-
 # Place an order or redirect the main menu
-# def cake_layers_handler(update: Update, context: CallbackContext):
-#     update.message.reply_text(
-#         'Выберите количество уровней торта',
-#         reply_markup=layers_keyboard()
-#     )
-#     return FORM
-
-
-# def cake_form_handler(update: Update, context: CallbackContext):
-#     update.message.reply_text(
-#         'Выберите форму торта',
-#         reply_markup=form_keyboard()
-#     )
-#     return TOPPING
-
-
-# def cake_topping_handler(update: Update, context: CallbackContext):
-#     update.message.reply_text(
-#         'Выберите топпинг',
-#         reply_markup=topping_keyboard()
-#     )
-#     return DECOR
-
-
-# def cake_decor_handler(update: Update, context: CallbackContext):
-#     update.message.reply_text(
-#         'Выберите декор',
-#         reply_markup=decor_keyboard()
-#     )
-#     return BERRIES
-
-
-# def cake_berry_handler(update: Update, context: CallbackContext):
-#     update.message.reply_text(
-#         'Выберите ягоды.',
-#         reply_markup=berry_keyboard()
-#     )
-#     return LETTERING
-
 
 # def cake_lettering_handler(update: Update, context: CallbackContext):
 #     update.message.reply_text(
@@ -724,7 +682,7 @@ def run_bot(tg_token) -> None:
             States.FINISH_CAKE: [
                 MessageHandler(
                     Filters.text & ~Filters.command,
-                    echo
+                    handle_finish_cake
                 ),
             ],
             States.ORDER_DETAILS: [
