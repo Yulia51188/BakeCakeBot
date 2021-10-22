@@ -347,6 +347,12 @@ def add_option_to_cake(option_id, cake_id):
     cake.save()
     return cake
 
+
+def delete_cake(cake_id):
+    Cake.objects.get(id=cake_id).delete()
+    return
+
+
 # Functions to send user standard messages
 def request_for_input_phone(update):
     logger.info('No phone in DB')
@@ -373,11 +379,40 @@ def invite_user_to_main_menu(client, update):
     return States.CLIENT_MAIN_MENU
 
 
+def send_option_choices(update, category):
+    update.message.reply_text(
+        text=f'Выберите вариант "{category.title}"',
+        reply_markup=create_options_keyboard(category)
+    )
+    return
+
+
+def get_next_category(update, category_number):
+    global category_index
+    category_index += 1
+    logger.info(f'Next {category_index}/{len(option_categories)}')
+  
+    if category_index >= len(option_categories):
+        category_index = None
+        logger.info('Options has been chosen')
+        update.message.reply_text(
+            text='Торт готов!',
+        ) 
+        return States.FINISH_CAKE
+
+    send_option_choices(update, option_categories[category_index])
+    return States.CREATE_CAKE
+
+
 # States handlers
 def handle_return_to_menu(update, context):
     global category_index
     global current_cake_id
-
+    
+    logger.info(f'Delete cake {current_cake_id}')
+    if current_cake_id:
+        logger.info(f'Delete cake {current_cake_id}')
+        delete_cake(current_cake_id)
     category_index = None
     current_cake_id = None
 
@@ -461,72 +496,32 @@ def handle_create_cake(update, context):
     global category_index
     global current_cake_id
 
-    if not category_index:
+    if category_index is None:
+        # Подгружаем категории и создаем клавиатуру
         option_categories = list(load_categories())
         category_index = 0
         current_cake_id = create_new_cake(update.message.chat_id)
+        send_option_choices(update, option_categories[category_index])
+        logger.info(f'Send {category_index}/{len(option_categories)}')
+        return States.CREATE_CAKE
 
-    if category_index > 0:
-        option_id = parse_option_id(update.message.text)
-        logger.info(f'Add option {option_id} to cake {current_cake_id}')
-        cake = add_option_to_cake(option_id, current_cake_id)
-        logger.info(f'{cake}')
+    option_id = parse_option_id(update.message.text)
+    add_option_to_cake(option_id, current_cake_id)
+    logger.info(f'Add option {option_id} to cake {current_cake_id}')
 
-    # To function
-    logger.info(f'Categories: {option_categories}')
-
-    category = option_categories[category_index]
-
-    update.message.reply_text(
-        text=f'Выберите вариант "{category.title}"',
-        reply_markup=create_options_keyboard(category)
-    )
-    # ---------
-
-    category_index += 1
-
-    # To function    
-    if category_index > len(option_categories) - 1:
-        category_index = None
-        current_cake_id = None
-        return States.FINISH_CAKE
-    
-    return States.CREATE_CAKE
+    return get_next_category(update, len(option_categories))
 
 
 def handle_skip_option(update, context):
     global option_categories
-    global category_index
-    global current_cake_id
-
-    # To function
-    logger.info(f'Categories: {option_categories}')
-
-    category = option_categories[category_index]
-
-    update.message.reply_text(
-        text=f'Выберите вариант "{category.title}"',
-        reply_markup=create_options_keyboard(category)
-    )
-    # ---------
-
-    category_index += 1
-    
-    # To function    
-    if category_index > len(option_categories) - 1:
-        category_index = None
-        current_cake_id = None
-        logger.info('All options are chosen')  
-        return States.FINISH_CAKE
-
-    return States.CREATE_CAKE
+    return get_next_category(update, len(option_categories))
 
 
 def handle_finish_cake(update, context):
     update.message.reply_text(
         text='Торт готов!',
     ) 
-    return 
+    return States.FINISH_CAKE
 
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
@@ -682,6 +677,10 @@ def run_bot(tg_token) -> None:
                 ),
             ],
             States.FINISH_CAKE: [
+                MessageHandler(
+                    Filters.regex('^В главное меню$'),
+                    handle_return_to_menu,
+                ),
                 MessageHandler(
                     Filters.text & ~Filters.command,
                     handle_finish_cake
