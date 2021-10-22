@@ -220,6 +220,7 @@ def main_menu_keyboard(show_orders=False):
 #     return markup
 
 
+# Function to get or post data to DB
 def get_client_entry(chat_id, tg_user):
     client, is_new = Client.objects.get_or_create(tg_chat_id=chat_id)
     logger.info(f'Get client from DB: {client}, {is_new}')
@@ -230,39 +231,6 @@ def get_client_entry(chat_id, tg_user):
         client.save()
     
     return client
-
-
-def handle_authorization(update, context):
-    user = update.effective_user
-    client = get_client_entry(update.message.chat_id, user)
-    
-    if not(client.phone):
-        logger.info('No phone in DB')
-        update.message.reply_text(
-            text=f'Пожалуйста, укажите номер телефона') 
-        return States.INPUT_PHONE
-    
-    if not(client.address):
-        logger.info('No address in DB')
-        update.message.reply_text(
-            text=f'Пожалуйста, укажите адрес доставки') 
-        return States.INPUT_ADDRESS
-    
-    is_any_order = client.orders.exists()
-    logger.info(f'CLient {client} has orders? {is_any_order}')
-    update.message.reply_text(
-        text=f'Добро пожаловать в BakeCake!',
-        reply_markup=main_menu_keyboard(is_any_order)
-    )    
-    return States.CLIENT_MAIN_MENU
-
-
-def start(update, context):
-    user = update.effective_user
-    update.message.reply_text(
-        text=f'Привет, {user.first_name}!',
-    )
-    return handle_authorization(update, context)
 
 
 def add_phone_to_client(chat_id, phone):
@@ -279,8 +247,47 @@ def add_address_to_client(chat_id, address):
     return client
 
 
-def handle_phone_input(update, context):
+# Functions to saend user standard messages
+def request_for_input_phone(update):
+    logger.info('No phone in DB')
+    update.message.reply_text(
+        text='Пожалуйста, укажите номер телефона'
+    ) 
+    return States.INPUT_PHONE 
+
+
+def request_for_input_address(update):
+    logger.info('No address in DB')
+    update.message.reply_text(
+        text='Пожалуйста, укажите адрес доставки') 
+    return States.INPUT_ADDRESS
+
+
+def send_greeting(client, update):
+    is_any_order = client.orders.exists()
+    logger.info(f'CLient {client} has orders? {is_any_order}')
+    update.message.reply_text(
+        text='Добро пожаловать в BakeCake!',
+        reply_markup=main_menu_keyboard(is_any_order)
+    )    
+    return States.CLIENT_MAIN_MENU
+
+
+# States handlers
+def handle_authorization(update, context):
     user = update.effective_user
+    client = get_client_entry(update.message.chat_id, user)
+    
+    if not(client.phone):
+        return request_for_input_phone
+    
+    if not(client.address):
+        return request_for_input_address
+    
+    return send_greeting(client, update)
+
+
+def handle_phone_input(update, context):
     client = add_phone_to_client(update.message.chat_id, update.message.text)
     
     update.message.reply_text(
@@ -291,43 +298,20 @@ def handle_phone_input(update, context):
     if not client.address:
         logger.info('No address in DB')
         update.message.reply_text(
-            text=f'Пожалуйста, укажите адрес доставки') 
+            text='Пожалуйста, укажите адрес доставки') 
         return States.INPUT_ADDRESS
 
-    is_any_order = client.orders.exists()
-    logger.info(f'CLient {client} has orders? {is_any_order}')
-    update.message.reply_text(
-        text=f'Добро пожаловать в BakeCake!',
-        reply_markup=main_menu_keyboard(is_any_order)
-    )       
-    return States.CLIENT_MAIN_MENU
+    return send_greeting(client, update)
 
 
 def handle_address_input(update, context):
-    logger.info('Start_handle_address_input')
-    user = update.effective_user
-    client = add_address_to_client(update.message.chat_id, update.message.text)
-    
+    client = add_address_to_client(update.message.chat_id, update.message.text) 
+    logger.info(f'Add address {client.address} for {client.tg_chat_id}')
     update.message.reply_text(
         f'В профиль добавлен адрес доставки: {client.address}',
     )
-    logger.info(f'Add address {client.address} for {client.tg_chat_id}')
 
-    is_any_order = client.orders.exists()
-    logger.info(f'CLient {client} has orders? {is_any_order}')
-    update.message.reply_text(
-        text=f'Добро пожаловать в BakeCake!',
-        reply_markup=main_menu_keyboard(is_any_order)
-    )       
-    return States.CLIENT_MAIN_MENU
-
-
-def help_command(update, context) -> None:
-    update.message.reply_text('Help!')
-
-
-def echo(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(update.message.text)
+    return send_greeting(client, update)
 
 
 # user registration
@@ -466,12 +450,27 @@ def echo(update: Update, context: CallbackContext) -> None:
 #     )
 #     return ConversationHandler.END
 
+def start(update, context):
+    user = update.effective_user
+    update.message.reply_text(
+        text=f'Привет, {user.first_name}!',
+    )
+    return handle_authorization(update, context)
+
 
 def cancel_handler(update, context):
     update.message.reply_text(
         'Очень жаль, что вы отменили заказ :((. Возвращайтесь!'
     )
     return ConversationHandler.END
+
+
+def help_command(update, context) -> None:
+    update.message.reply_text('Help!')
+
+
+def echo(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text(update.message.text)
 
 
 def run_bot(tg_token) -> None:
@@ -503,7 +502,6 @@ def run_bot(tg_token) -> None:
         },
         fallbacks=[
             MessageHandler(Filters.text, cancel_handler)
-
         ],
     )
 
