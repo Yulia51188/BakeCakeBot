@@ -51,24 +51,13 @@ class States(Enum):
 
 # Dialogue keyboards
 def main_menu_keyboard(show_orders=False):
+    keyboard = [
+        [KeyboardButton(text='Собрать торт')],
+    ]
     if show_orders:
-        markup = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    KeyboardButton(text='Собрать торт'),
-                ]
-            ],
-            resize_keyboard=True
-        )
-    else:
-        markup = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text='Собрать торт')],
-                [KeyboardButton(text='Ваши заказы')],
-            ],
-            resize_keyboard=True
-        )
-    return markup
+        keyboard.append([KeyboardButton(text='Ваши заказы')])
+    logger.info(f'{show_orders} {keyboard}')
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 # def contact_keyboard():
@@ -333,13 +322,11 @@ def handle_address_input(update, context):
     return States.CLIENT_MAIN_MENU
 
 
-def help_command(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
+def help_command(update, context) -> None:
     update.message.reply_text('Help!')
 
 
 def echo(update: Update, context: CallbackContext) -> None:
-    """Echo the user message."""
     update.message.reply_text(update.message.text)
 
 
@@ -481,7 +468,6 @@ def echo(update: Update, context: CallbackContext) -> None:
 
 
 def cancel_handler(update, context):
-    # user = update.effective_user
     update.message.reply_text(
         'Очень жаль, что вы отменили заказ :((. Возвращайтесь!'
     )
@@ -489,14 +475,10 @@ def cancel_handler(update, context):
 
 
 def run_bot(tg_token) -> None:
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
     updater = Updater(tg_token)
 
-    # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
 
-    # Dialogue system for ordering a cake
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
@@ -526,8 +508,7 @@ def run_bot(tg_token) -> None:
     )
 
     dispatcher.add_handler(conv_handler)
-
-    # dispatcher.add_handler(CommandHandler("start", start))
+    
     dispatcher.add_handler(CommandHandler("help", help_command))
 
     updater.start_polling()
