@@ -23,7 +23,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from bake_cake_bot.models import Category, Client, Order
+from bake_cake_bot.models import Cake, Category, Client, Order, Option
 from enum import Enum
 from textwrap import dedent
 
@@ -55,10 +55,16 @@ class States(Enum):
     FINISH_CAKE = 13
 
 
-def parse_order_button_text(input_string):
+def parse_order_id(input_string):
     words = input_string.split(' ')
     order_id = [word for word in words if '№' in word][0]
     return int(order_id[1:])
+
+
+def parse_option_id(input_string):
+    words = input_string.split(' ')
+    option_id = [word for word in words if '#' in word][0]
+    return int(option_id[1:])    
 
 
 # Dialogue keyboards
@@ -97,7 +103,7 @@ def create_options_keyboard(category):
     if not category.is_mandatory:
         keyboard.append([KeyboardButton(text='Пропустить')])
 
-    text_template = '{name} +{price} руб. (#{option_id})'
+    text_template = '{name} +{price} руб. #{option_id}'
 
     options = category.options.all()
     logger.info(f'Категория {category}: {options}')
@@ -326,7 +332,18 @@ def load_categories():
 
 
 def create_new_cake(chat_id):
-    pass
+    cake = Cake.objects.create(
+        created_by=Client.objects.get(tg_chat_id=chat_id),
+    )
+    return cake.id
+
+
+def add_option_to_cake(option_id, cake_id):
+    cake = Cake.objects.get(id=cake_id)
+    option = Option.objects.get(id=option_id)
+    cake.options.add(option)
+    cake.save()
+    return cake
 
 # Functions to send user standard messages
 def request_for_input_phone(update):
@@ -358,6 +375,7 @@ def invite_user_to_main_menu(client, update):
 def handle_return_to_menu(update, context):
     global category_index
     category_index = None
+    current_cake_id = None
 
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
@@ -417,7 +435,7 @@ def handle_show_orders(update, context):
 
 
 def handle_order_details(update, context):
-    order_id = parse_order_button_text(update.message.text)
+    order_id = parse_order_id(update.message.text)
     logger.info(f'Parse order id: {order_id}')
     order = get_order_details(order_id)
     
@@ -445,7 +463,37 @@ def handle_create_cake(update, context):
         current_cake_id = create_new_cake(update.message.chat_id)
 
     if category_index > 0:
-        logger.info(f'Add options to cake: {option_categories}') 
+        option_id = parse_option_id(update.message.text)
+        logger.info(f'Add option {option_id} to cake {current_cake_id}')
+        cake = add_option_to_cake(option_id, current_cake_id)
+        logger.info(f'{cake}')
+
+    # To function
+    logger.info(f'Categories: {option_categories}')
+
+    category = option_categories[category_index]
+
+    update.message.reply_text(
+        text=f'Выберите вариант "{category.title}"',
+        reply_markup=create_options_keyboard(category)
+    )
+    # ---------
+
+    category_index += 1
+
+    # To function    
+    if category_index > len(option_categories) - 1:
+        category_index = None
+        current_cake_id = None
+        return States.FINISH_CAKE
+    
+    return States.CREATE_CAKE
+
+
+def handle_skip_option(update, context):
+    global option_categories
+    global category_index
+    global current_cake_id
 
     # To function
     logger.info(f'Categories: {option_categories}')
@@ -460,11 +508,13 @@ def handle_create_cake(update, context):
 
     category_index += 1
     
+    # To function    
     if category_index > len(option_categories) - 1:
         category_index = None
         current_cake_id = None
+        logger.info('All options are chosen')
         return States.FINISH_CAKE
-    
+
     return States.CREATE_CAKE
 
 
@@ -659,7 +709,15 @@ def run_bot(tg_token) -> None:
             ],
             States.CREATE_CAKE: [
                 MessageHandler(
-                    Filters.text & ~Filters.command,
+                    Filters.regex('^Пропустить$'),
+                    handle_skip_option,
+                ),
+                MessageHandler(
+                    Filters.regex('^В главное меню$'),
+                    handle_return_to_menu,
+                ),
+                MessageHandler(
+                    Filters.regex('руб. #'),
                     handle_create_cake
                 ),
             ],
