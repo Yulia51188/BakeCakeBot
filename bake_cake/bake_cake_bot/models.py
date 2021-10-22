@@ -38,6 +38,11 @@ class Client(models.Model):
 class Category(models.Model):
     title = models.CharField('Название категории', max_length=100)
     is_mandatory = models.BooleanField('Обязательная?', default=False)
+
+    choice_order = models.IntegerField(
+        'Порядок выбора опций категории',
+        default=100000,
+    )
     
     def __str__(self):
         return f'{self.title}'

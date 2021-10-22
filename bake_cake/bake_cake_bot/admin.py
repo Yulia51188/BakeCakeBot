@@ -9,7 +9,7 @@ class ClientAdmin(admin.ModelAdmin):
 
 
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ['title', 'is_mandatory']
+    list_display = ['title', 'choice_order', 'is_mandatory']
 
 
 class OptionAdmin(admin.ModelAdmin):
