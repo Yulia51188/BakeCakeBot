@@ -23,7 +23,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from bake_cake_bot.models import Client, Order
+from bake_cake_bot.models import Category, Client, Order
 from enum import Enum
 from textwrap import dedent
 
@@ -32,6 +32,10 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+option_categories = None
+category_index = None
+current_cake_id = None
 
 
 class States(Enum):
@@ -47,6 +51,8 @@ class States(Enum):
     INPUT_PHONE = 9
     INPUT_ADDRESS = 10
     ORDER_DETAILS = 11
+    CREATE_CAKE = 12
+    FINISH_CAKE = 13
 
 
 def parse_order_button_text(input_string):
@@ -71,12 +77,11 @@ def create_orders_keyboard(orders):
     text_template = 'Заказ №{id} на сумму {total_amount} от {created_at}'
     for order in orders:
         keyboard.append(
-            [KeyboardButton(
-                text=text_template.format(
-                    id=order.id,
-                    total_amount=order.total_amount,
-                    created_at=order.created_at,
-                ))
+            [KeyboardButton(text=text_template.format(
+                id=order.id,
+                total_amount=order.total_amount,
+                created_at=order.created_at,
+            ))
             ],
         )
     keyboard.append(
@@ -85,6 +90,32 @@ def create_orders_keyboard(orders):
     logger.info(f'Create orders keyboard {keyboard}')
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+
+def create_options_keyboard(category):
+    keyboard = []    
+
+    if not category.is_mandatory:
+        keyboard.append([KeyboardButton(text='Пропустить')])
+
+    text_template = '{name} +{price} руб. (#{option_id})'
+
+    options = category.options.all()
+    logger.info(f'Категория {category}: {options}')
+
+    for option in options:
+        keyboard.append(
+            [KeyboardButton(text=text_template.format(
+                name=option.name,
+                price=option.price,
+                option_id=option.id,
+            ))
+            ],
+        )    
+    
+    keyboard.append(
+        [KeyboardButton(text='В главное меню')],
+    )
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)            
 
 # def contact_keyboard():
 #     markup = ReplyKeyboardMarkup(
@@ -290,6 +321,13 @@ def get_order_details(order_id):
     return order
 
 
+def load_categories():
+    return Category.objects.prefetch_related('options').order_by('choice_order')
+
+
+def create_new_cake(chat_id):
+    pass
+
 # Functions to send user standard messages
 def request_for_input_phone(update):
     logger.info('No phone in DB')
@@ -318,6 +356,9 @@ def invite_user_to_main_menu(client, update):
 
 # States handlers
 def handle_return_to_menu(update, context):
+    global category_index
+    category_index = None
+
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
     return invite_user_to_main_menu(client, update)
@@ -391,6 +432,42 @@ def handle_order_details(update, context):
         Адрес доставки: {order.client.address}'''))
 
     return States.ORDER_DETAILS
+
+
+def handle_create_cake(update, context):
+    global option_categories
+    global category_index
+    global current_cake_id
+
+    if not category_index:
+        option_categories = list(load_categories())
+        category_index = 0
+        current_cake_id = create_new_cake(update.message.chat_id)
+
+    if category_index > 0:
+        logger.info(f'Add options to cake: {option_categories}') 
+
+    # To function
+    logger.info(f'Categories: {option_categories}')
+
+    category = option_categories[category_index]
+
+    update.message.reply_text(
+        text=f'Выберите вариант "{category.title}"',
+        reply_markup=create_options_keyboard(category)
+    )
+    # ---------
+
+    category_index += 1
+    
+    if category_index > len(option_categories) - 1:
+        category_index = None
+        current_cake_id = None
+        return States.FINISH_CAKE
+    
+    return States.CREATE_CAKE
+
+
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
 #     chat_id = update.effective_chat.id
@@ -574,6 +651,22 @@ def run_bot(tg_token) -> None:
                 MessageHandler(
                     Filters.regex('^Ваши заказы$'),
                     handle_show_orders
+                ),
+                MessageHandler(
+                    Filters.regex('^Собрать торт$'),
+                    handle_create_cake
+                ),
+            ],
+            States.CREATE_CAKE: [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    handle_create_cake
+                ),
+            ],
+            States.FINISH_CAKE: [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    echo
                 ),
             ],
             States.ORDER_DETAILS: [
