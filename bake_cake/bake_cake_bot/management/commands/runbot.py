@@ -290,9 +290,11 @@ def get_client_entry(chat_id, tg_user):
     
     if is_new:
         client.first_name = tg_user.first_name
-        client.last_name = tg_user.last_name
+        logger.info(f'Last name: {tg_user.last_name}, {bool(tg_user.last_name)}')
+        if tg_user.last_name:
+            client.last_name = tg_user.last_name
         client.save()
-    
+        
     return client
 
 
@@ -389,10 +391,10 @@ def handle_authorization(update, context):
     client = get_client_entry(update.message.chat_id, user)
     
     if not(client.phone):
-        return request_for_input_phone
+        return request_for_input_phone(update)
     
     if not(client.address):
-        return request_for_input_address
+        return request_for_input_address(update)
     
     return invite_user_to_main_menu(client, update)
 
@@ -524,7 +526,7 @@ def handle_finish_cake(update, context):
     update.message.reply_text(
         text='Торт готов!',
     ) 
-    return invite_user_to_main_menu()
+    return 
 
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
@@ -697,7 +699,7 @@ def run_bot(tg_token) -> None:
             ]
         },
         fallbacks=[
-            MessageHandler(Filters.text, cancel_handler)
+            MessageHandler(Filters.text & ~Filters.command, cancel_handler)
         ],
     )
 
