@@ -23,11 +23,10 @@ from telegram.ext import CallbackContext, ConversationHandler
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from bake_cake_bot.models import Client
+from bake_cake_bot.models import Client, Order
 from enum import Enum
 from textwrap import dedent
 
-# Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
@@ -47,16 +46,43 @@ class States(Enum):
     CLIENT_MAIN_MENU = 8
     INPUT_PHONE = 9
     INPUT_ADDRESS = 10
+    ORDER_DETAILS = 11
+
+
+def parse_order_button_text(input_string):
+    words = input_string.split(' ')
+    order_id = [word for word in words if '№' in word][0]
+    return int(order_id[1:])
 
 
 # Dialogue keyboards
-def main_menu_keyboard(show_orders=False):
+def create_main_menu_keyboard(show_orders=False):
     keyboard = [
         [KeyboardButton(text='Собрать торт')],
     ]
     if show_orders:
         keyboard.append([KeyboardButton(text='Ваши заказы')])
     logger.info(f'{show_orders} {keyboard}')
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def create_orders_keyboard(orders):
+    keyboard = []
+    text_template = 'Заказ №{id} на сумму {total_amount} от {created_at}'
+    for order in orders:
+        keyboard.append(
+            [KeyboardButton(
+                text=text_template.format(
+                    id=order.id,
+                    total_amount=order.total_amount,
+                    created_at=order.created_at,
+                ))
+            ],
+        )
+    keyboard.append(
+        [KeyboardButton(text='В главное меню')],
+    )
+    logger.info(f'Create orders keyboard {keyboard}')
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
@@ -247,7 +273,24 @@ def add_address_to_client(chat_id, address):
     return client
 
 
-# Functions to saend user standard messages
+def get_client_orders(chat_id):
+    client = Client.objects.get(tg_chat_id=chat_id)
+    orders = client.orders.all()
+    logger.info(f'Get orders: {orders}')
+    return orders
+
+
+def get_order_details(order_id):
+    order = (
+        Order.objects
+        .select_related('client')
+        .prefetch_related('cakes')
+        .get(id=order_id)
+    )
+    return order
+
+
+# Functions to send user standard messages
 def request_for_input_phone(update):
     logger.info('No phone in DB')
     update.message.reply_text(
@@ -263,17 +306,23 @@ def request_for_input_address(update):
     return States.INPUT_ADDRESS
 
 
-def send_greeting(client, update):
+def invite_user_to_main_menu(client, update):
     is_any_order = client.orders.exists()
     logger.info(f'CLient {client} has orders? {is_any_order}')
     update.message.reply_text(
-        text='Добро пожаловать в BakeCake!',
-        reply_markup=main_menu_keyboard(is_any_order)
+        text='Выберите действие',
+        reply_markup=create_main_menu_keyboard(is_any_order)
     )    
     return States.CLIENT_MAIN_MENU
 
 
 # States handlers
+def handle_return_to_menu(update, context):
+    user = update.effective_user
+    client = get_client_entry(update.message.chat_id, user)
+    return invite_user_to_main_menu(client, update)
+
+
 def handle_authorization(update, context):
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
@@ -284,7 +333,7 @@ def handle_authorization(update, context):
     if not(client.address):
         return request_for_input_address
     
-    return send_greeting(client, update)
+    return invite_user_to_main_menu(client, update)
 
 
 def handle_phone_input(update, context):
@@ -301,7 +350,7 @@ def handle_phone_input(update, context):
             text='Пожалуйста, укажите адрес доставки') 
         return States.INPUT_ADDRESS
 
-    return send_greeting(client, update)
+    return invite_user_to_main_menu(client, update)
 
 
 def handle_address_input(update, context):
@@ -311,9 +360,37 @@ def handle_address_input(update, context):
         f'В профиль добавлен адрес доставки: {client.address}',
     )
 
-    return send_greeting(client, update)
+    return invite_user_to_main_menu(client, update)
 
 
+def handle_show_orders(update, context):
+    orders = get_client_orders(update.message.chat_id)
+
+    reply_markup = create_orders_keyboard(orders)
+
+    update.message.reply_text(
+        'Выберите заказ для просмотра',
+        reply_markup=reply_markup
+    )
+    return States.ORDER_DETAILS
+
+
+def handle_order_details(update, context):
+    order_id = parse_order_button_text(update.message.text)
+    logger.info(f'Parse order id: {order_id}')
+    order = get_order_details(order_id)
+    
+    update.message.reply_text(dedent(f'''\
+        Заказ №{order.id}
+
+        Количество тортов в заказе: {order.cakes.count()}
+        Стоимость заказа: {order.total_amount}
+
+        Имя получателя: {order.client.first_name} {order.client.last_name}
+        Телефон: {order.client.phone}
+        Адрес доставки: {order.client.address}'''))
+
+    return States.ORDER_DETAILS
 # user registration
 # def registration_handler(update: Update, context: CallbackContext):
 #     chat_id = update.effective_chat.id
@@ -495,10 +572,20 @@ def run_bot(tg_token) -> None:
             ],
             States.CLIENT_MAIN_MENU: [
                 MessageHandler(
-                    Filters.text & ~Filters.command,
-                    echo
+                    Filters.regex('^Ваши заказы$'),
+                    handle_show_orders
                 ),
             ],
+            States.ORDER_DETAILS: [
+                MessageHandler(
+                    Filters.regex('^В главное меню$'),
+                    handle_return_to_menu,
+                ),
+                MessageHandler(
+                    Filters.regex('^Заказ №*'),
+                    handle_order_details,
+                ),
+            ]
         },
         fallbacks=[
             MessageHandler(Filters.text, cancel_handler)
