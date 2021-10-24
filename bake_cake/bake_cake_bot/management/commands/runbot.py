@@ -15,7 +15,7 @@ bot.
 
 import logging
 
-from telegram import Update, ForceReply
+from telegram import Update
 from telegram import KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext, ConversationHandler
