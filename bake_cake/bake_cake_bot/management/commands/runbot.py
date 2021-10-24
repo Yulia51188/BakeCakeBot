@@ -57,6 +57,7 @@ class States(Enum):
     ORDERING = 14
     CHANGE_PHONE = 15
     CHANGE_ADDRESS = 16
+    CONSENT_PROCESSING = 17
 
 
 def parse_order_id(input_string):
@@ -146,6 +147,14 @@ def create_order_comfirm_keyboard():
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
+def accept_consent_processing():
+    keyboard = [
+        [KeyboardButton(text='Принять соглашение')],
+        [KeyboardButton(text='Отказаться')]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
 # Function to get or post data to DB
 def create_new_order(cake_id, chat_id):
     cake = Cake.objects.get(id=cake_id)
@@ -173,6 +182,13 @@ def get_client_entry(chat_id, tg_user):
             client.last_name = tg_user.last_name
         client.save()
 
+    return client
+
+
+def add_consent_processing(chat_id, consest):
+    client, is_new = Client.objects.get_or_create(tg_chat_id=chat_id)
+    client.pd_proccessing_consent = consest
+    client.save()
     return client
 
 
@@ -229,6 +245,14 @@ def add_option_to_cake(option_id, cake_id):
 def delete_cake(cake_id):
     Cake.objects.get(id=cake_id).delete()
     return
+
+
+def request_consent_processing(update):
+    update.message.reply_text(
+        text='Пожалуйста, дайте согласине на обработку персональных данных',
+        reply_markup=accept_consent_processing()
+    )
+    return States.CONSENT_PROCESSING
 
 
 # Functions to send user standard messages
@@ -341,6 +365,9 @@ def handle_authorization(update, context):
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
 
+    if not(client.pd_proccessing_consent):
+        return request_consent_processing(update)
+
     if not(client.phone):
         return request_for_input_phone(update)
 
@@ -348,6 +375,24 @@ def handle_authorization(update, context):
         return request_for_input_address(update)
 
     return invite_user_to_main_menu(update)
+
+
+def handle_consent_processing(update, context):
+    client_input = update.message.text
+    if client_input == 'Принять соглашение':
+        consent_processing = True
+    elif client_input == 'Отказаться':
+        consent_processing = False
+    else:
+        return handle_not_understand(update)
+
+    client = add_consent_processing(update.message.chat_id, consent_processing)
+
+    update.message.reply_text(
+        text='Вы согласились на обработку персональных данных'
+    )
+    # Возвращаем авторизацию, чтобы заполнить недостающие данные
+    return handle_authorization(update, context)
 
 
 def handle_phone_input(update, context):
@@ -406,6 +451,7 @@ def handle_create_cake(update, context):
     if _category_index is None:
         # Подгружаем категории и создаем клавиатуру
         _option_categories = list(load_categories())
+        print(_option_categories)
         _category_index = 0
         _current_cake_id = create_new_cake(update.message.chat_id)
         send_option_choices(update, _option_categories[_category_index])
@@ -508,6 +554,12 @@ def start(update, context):
     return handle_authorization(update, context)
 
 
+def handle_not_understand(update):
+    update.message.reply_text(
+        text='Извините, но я вас не понял :(',
+    )
+
+
 def cancel_handler(update, context):
     update.message.reply_text(
         'Очень жаль, что вы отменили заказ :((. Возвращайтесь!'
@@ -531,6 +583,12 @@ def run_bot(tg_token) -> None:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
+            States.CONSENT_PROCESSING: [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    handle_consent_processing
+                ),
+            ],
             States.INPUT_PHONE: [
                 MessageHandler(
                     Filters.text & ~Filters.command,
