@@ -68,7 +68,7 @@ def parse_order_id(input_string):
 def parse_option_id(input_string):
     words = input_string.split(' ')
     option_id = [word for word in words if '#' in word][0]
-    return int(option_id[1:])    
+    return int(option_id[1:])
 
 
 # Dialogue keyboards
@@ -102,7 +102,7 @@ def create_orders_keyboard(orders):
 
 
 def create_options_keyboard(category):
-    keyboard = []    
+    keyboard = []
 
     if not category.is_mandatory:
         keyboard.append([KeyboardButton(text='Пропустить')])
@@ -120,12 +120,12 @@ def create_options_keyboard(category):
                 option_id=option.id,
             ))
             ],
-        )    
-    
+        )
+
     keyboard.append(
         [KeyboardButton(text='В главное меню')],
     )
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)            
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 def create_to_order_keyboard():
@@ -133,7 +133,7 @@ def create_to_order_keyboard():
         [KeyboardButton(text='Оформить заказ')],
         [KeyboardButton(text='В главное меню')]
     ]
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)     
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 def create_order_comfirm_keyboard():
@@ -143,20 +143,20 @@ def create_order_comfirm_keyboard():
         [KeyboardButton(text='Изменить адрес')],
         [KeyboardButton(text='Отменить')],
     ]
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)      
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 # Function to get or post data to DB
 def create_new_order(cake_id, chat_id):
     cake = Cake.objects.get(id=cake_id)
     client = Client.objects.get(tg_chat_id=chat_id)
-    
+
     order = Order.objects.create(
         client=client,
     )
     order.cakes.set([cake])
     order.save()
-    
+
     cake.is_in_order = True
     cake.save()
     return order
@@ -165,14 +165,14 @@ def create_new_order(cake_id, chat_id):
 def get_client_entry(chat_id, tg_user):
     client, is_new = Client.objects.get_or_create(tg_chat_id=chat_id)
     logger.info(f'Get client from DB: {client}, {is_new}')
-    
+
     if is_new:
         client.first_name = tg_user.first_name
         logger.info(f'Last name: {tg_user.last_name}, {bool(tg_user.last_name)}')
         if tg_user.last_name:
             client.last_name = tg_user.last_name
         client.save()
-        
+
     return client
 
 
@@ -236,14 +236,14 @@ def request_for_input_phone(update):
     logger.info('No phone in DB')
     update.message.reply_text(
         text='Пожалуйста, укажите номер телефона'
-    ) 
-    return States.INPUT_PHONE 
+    )
+    return States.INPUT_PHONE
 
 
 def request_for_input_address(update):
     logger.info('No address in DB')
     update.message.reply_text(
-        text='Пожалуйста, укажите адрес доставки') 
+        text='Пожалуйста, укажите адрес доставки')
     return States.INPUT_ADDRESS
 
 
@@ -254,7 +254,7 @@ def invite_user_to_main_menu(update):
     update.message.reply_text(
         text='Выберите действие',
         reply_markup=create_main_menu_keyboard(is_any_order)
-    )    
+    )
     return States.CLIENT_MAIN_MENU
 
 
@@ -267,12 +267,12 @@ def send_option_choices(update, category):
 
 
 def get_next_category(update, category_number):
-    
+
     global _category_index
     _category_index += 1
-    
+
     logger.info(f'Next {_category_index}/{len(_option_categories)}')
-  
+
     if _category_index >= len(_option_categories):
         invite_to_ordering(update)
         return States.FINISH_CAKE
@@ -287,11 +287,11 @@ def invite_to_ordering(update):
 
     _category_index = None
     logger.info('Options has been chosen')
-    
+
     update.message.reply_text(
         text='Торт готов!',
         reply_markup=create_to_order_keyboard()
-    ) 
+    )
     return
 
 
@@ -317,14 +317,14 @@ def invite_to_confirm_order(update, order):
         text='Проверьте свой заказ',
         reply_markup=create_order_comfirm_keyboard()
     )
-    return    
+    return
 
 
 # States handlers
 def handle_return_to_menu(update, context):
     global _category_index
     global _current_cake_id
-    
+
     logger.info(f'Delete cake {_current_cake_id}')
     if _current_cake_id:
         logger.info(f'Delete cake {_current_cake_id}')
@@ -340,19 +340,19 @@ def handle_return_to_menu(update, context):
 def handle_authorization(update, context):
     user = update.effective_user
     client = get_client_entry(update.message.chat_id, user)
-    
+
     if not(client.phone):
         return request_for_input_phone(update)
-    
+
     if not(client.address):
         return request_for_input_address(update)
-    
+
     return invite_user_to_main_menu(update)
 
 
 def handle_phone_input(update, context):
     client = add_phone_to_client(update.message.chat_id, update.message.text)
-    
+
     update.message.reply_text(
         f'В профиль добавлен телефон для связи: {client.phone}',
     )
@@ -361,14 +361,14 @@ def handle_phone_input(update, context):
     if not client.address:
         logger.info('No address in DB')
         update.message.reply_text(
-            text='Пожалуйста, укажите адрес доставки') 
+            text='Пожалуйста, укажите адрес доставки')
         return States.INPUT_ADDRESS
 
     return invite_user_to_main_menu(update)
 
 
 def handle_address_input(update, context):
-    client = add_address_to_client(update.message.chat_id, update.message.text) 
+    client = add_address_to_client(update.message.chat_id, update.message.text)
     logger.info(f'Add address {client.address} for {client.tg_chat_id}')
     update.message.reply_text(
         f'В профиль добавлен адрес доставки: {client.address}',
@@ -393,7 +393,7 @@ def handle_order_details(update, context):
     order_id = parse_order_id(update.message.text)
     logger.info(f'Parse order id: {order_id}')
     order = get_order_details(order_id)
-    
+
     send_order_info(update, order)
     return States.ORDER_DETAILS
 
@@ -427,7 +427,7 @@ def handle_skip_option(update, context):
 def handle_finish_cake(update, context):
     update.message.reply_text(
         text='Торт готов!',
-    ) 
+    )
     return States.FINISH_CAKE
 
 
@@ -455,7 +455,7 @@ def handle_confirm_order(update, context):
         text=f'Заказ № {_current_order_id} подтвержден'
     )
     _current_order_id = None
-    return invite_user_to_main_menu(update)   
+    return invite_user_to_main_menu(update)
 
 
 def handle_request_other_address(update, context):
@@ -476,113 +476,29 @@ def handle_phone_change(update, context):
     global _current_order_id
 
     client = add_phone_to_client(update.message.chat_id, update.message.text)
-    
+
     update.message.reply_text(
         f'В профиль добавлен телефон для связи: {client.phone}',
     )
     logger.info(f'Add phone {client.phone} for {client.tg_chat_id}')
 
     order = Order.objects.get(id=_current_order_id)
-    invite_to_confirm_order(update, order)    
+    invite_to_confirm_order(update, order)
     return States.ORDERING
 
 
 def handle_address_change(update, context):
     client = add_address_to_client(update.message.chat_id, update.message.text)
-    
+
     update.message.reply_text(
         f'В профиль добавлен адрес доставки: {client.address}',
     )
     logger.info(f'Add address {client.address} for {client.tg_chat_id}')
-    
+
     order = Order.objects.get(id=_current_order_id)
-    invite_to_confirm_order(update, order)    
+    invite_to_confirm_order(update, order)
     return States.ORDERING
-# user registration
-# def registration_handler(update: Update, context: CallbackContext):
-#     chat_id = update.effective_chat.id
-#     context.bot.send_message(
-#         chat_id=chat_id,
-#         text='Ознакомьтесь с политикой по обработке персональных данных.',
-#         reply_markup=registration_keyboard()
-#     )
-#     with open("files/personal_data_policy.pdf", 'rb') as file:
-#         context.bot.send_document(chat_id=chat_id, document=file)
-#     return AUTHORIZATION
 
-
-# def user_registration_db(update):
-#     pass
-
-
-# def agreement_handler(update, context):
-#     user_answer = update.effective_message.text
-#     chat_id = update.effective_chat.id
-#     if user_answer == 'Согласиться':
-#         context.bot.send_message(
-#             chat_id=chat_id,
-#             text='Добавьте свой номер телефона.',
-#             reply_markup=contact_keyboard(),
-#         )
-#         return AUTHORIZATION
-
-#     if user_answer == 'Отказаться':
-#         context.bot.send_message(
-#             chat_id=chat_id,
-#             text='Очень жаль, что вы отказались от регистрации :(('
-#                  'Возвращайтесь!',
-#             reply_markup=main_keyboard(chat_id),
-#         )
-#         return AUTHORIZATION
-
-
-# def add_phone_handler(update, context):
-#     chat_id = update.effective_chat.id
-#     user_answer = update.effective_message.text
-#     if user_answer.isdigit():
-#         context.bot.send_message(
-#             chat_id=chat_id,
-#             text='Добавьте адрес доставки.',
-#             reply_markup=contact_keyboard()
-#         )
-#     else:
-#         context.bot.send_message(
-#             chat_id=chat_id,
-#             text='Номер телефона имеет не верный формат.'
-#                  'Номер телефона должен состоять только из цифр.',
-#             reply_markup=contact_keyboard()
-#         )
-#     return AUTHORIZATION
-
-
-# Place an order or redirect the main menu
-
-# def cake_lettering_handler(update: Update, context: CallbackContext):
-#     update.message.reply_text(
-#         'Мы можем разместить на торте любую надпись.'
-#         'Например: «С днем рождения!»',
-#         reply_markup=lettering_keyboard()
-#     )
-#     return ADDRESS
-
-
-# def order_address_handler(update, context):
-#     update.message.reply_text(
-#         'Добавьте адрес доставки',
-#         reply_markup=order_cake_keyboard()
-#     )
-#     return ADDRESS
-
-
-# def cancel_registration_handler(update, context):
-#     chat_id = update.effective_chat.id
-#     context.bot.send_message(
-#         chat_id=chat_id,
-#         text='Вы отказались от регистрации :(('
-#              'Необходимо согласие на обработку ПД!',
-#         reply_markup=main_keyboard(chat_id)
-#     )
-#     return ConversationHandler.END
 
 def start(update, context):
     user = update.effective_user
@@ -708,7 +624,7 @@ def run_bot(tg_token) -> None:
     )
 
     dispatcher.add_handler(conv_handler)
-    
+
     dispatcher.add_handler(CommandHandler("help", help_command))
 
     updater.start_polling()
