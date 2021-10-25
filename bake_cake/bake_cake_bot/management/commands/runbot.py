@@ -363,8 +363,6 @@ def handle_return_to_menu(update, context):
     _category_index = None
     _current_cake_id = None
 
-    user = update.effective_user
-    client = get_client_entry(update.message.chat_id, user)
     return invite_user_to_main_menu(update)
 
 
@@ -422,13 +420,7 @@ def handle_phone_input(update, context):
     )
     logger.info(f'Add phone {client.phone} for {client.tg_chat_id}')
 
-    if not client.address:
-        logger.info('No address in DB')
-        update.message.reply_text(
-            text='Пожалуйста, укажите адрес доставки')
-        return States.INPUT_ADDRESS
-
-    return invite_user_to_main_menu(update)
+    return handle_authorization(update, context)
 
 
 def handle_address_input(update, context):
@@ -438,7 +430,7 @@ def handle_address_input(update, context):
         f'В профиль добавлен адрес доставки: {client.address}',
     )
 
-    return invite_user_to_main_menu(update)
+    return handle_authorization(update, context)
 
 
 def handle_show_orders(update, context):
