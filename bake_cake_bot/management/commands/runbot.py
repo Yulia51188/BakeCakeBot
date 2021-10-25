@@ -753,7 +753,7 @@ def run_bot(tg_token) -> None:
             ),
             CommandHandler("stop", handle_stop)
         ],
-        allow_reentry=True,
+        # allow_reentry=True,
     )
 
     dispatcher.add_handler(conv_handler)
