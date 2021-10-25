@@ -1,1 +1,1 @@
-web: gunicorn bake_cake_bot.wsgi
+web: gunicorn bake_cake.wsgi
