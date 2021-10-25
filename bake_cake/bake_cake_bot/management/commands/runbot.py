@@ -263,7 +263,7 @@ def request_consent_processing(update, context, chat_id):
     with open("files/personal_data_policy.pdf", 'rb') as file:
         context.bot.send_document(chat_id=chat_id, document=file)
     update.message.reply_text(
-        text='Пожалуйста, дайте согласине на обработку персональных данных',
+        text='Пожалуйста, дайте согласие на обработку персональных данных',
         reply_markup=accept_consent_processing()
     )
     return States.CONSENT_PROCESSING
