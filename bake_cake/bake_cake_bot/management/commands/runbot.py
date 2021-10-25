@@ -685,7 +685,10 @@ def run_bot(tg_token) -> None:
             ]
         },
         fallbacks=[
-            MessageHandler(Filters.text & ~Filters.command, cancel_handler)
+            MessageHandler(
+                Filters.text & ~Filters.command,
+                handle_not_understand
+            )
         ],
     )
 
