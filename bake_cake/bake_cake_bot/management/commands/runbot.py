@@ -155,10 +155,7 @@ def accept_consent_processing():
         [KeyboardButton(text='Принять соглашение')],
         [KeyboardButton(text='Отказаться')]
     ]
-    return ReplyKeyboardMarkup(
-            keyboard,
-            resize_keyboard=True,
-        )
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 # Function to get or post data to DB
