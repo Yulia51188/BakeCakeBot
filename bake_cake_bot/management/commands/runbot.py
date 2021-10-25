@@ -560,9 +560,9 @@ def handle_phone_change(update, context):
         )
     ):
         update.message.reply_text(
-            text='Введите корректрый номер телефона'
+            text='Введите корректный номер телефона'
         )
-        return States.INPUT_PHONE
+        return States.CHANGE_PHONE
 
     client = add_phone_to_client(update.message.chat_id, input_phone_number)
 
