@@ -27,6 +27,9 @@ from bake_cake_bot.models import Cake, Category, Client, Order, Option
 from enum import Enum
 from textwrap import dedent
 
+import phonenumbers
+
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
@@ -404,6 +407,17 @@ def handle_consent_processing(update, context):
 
 
 def handle_phone_input(update, context):
+    if not phonenumbers.is_valid_number(
+        phonenumbers.parse(
+            update.message.text,
+            "RU"
+        )
+    ):
+        update.message.reply_text(
+            text='Введите корректрый номер телефона'
+        )
+        return States.INPUT_PHONE
+
     client = add_phone_to_client(update.message.chat_id, update.message.text)
 
     update.message.reply_text(
