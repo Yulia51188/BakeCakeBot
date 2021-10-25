@@ -390,7 +390,7 @@ def handle_consent_processing(update, context):
     elif client_input == 'Отказаться':
         consent_processing = False
     else:
-        return handle_not_understand(update)
+        return handle_not_understand(update, context)
 
     client = add_consent_processing(update.message.chat_id, consent_processing)
 
@@ -565,7 +565,7 @@ def start(update, context):
     return handle_authorization(update, context)
 
 
-def handle_not_understand(update):
+def handle_not_understand(update, context):
     update.message.reply_text(
         text='Извините, но я вас не понял :(',
     )
