@@ -82,14 +82,14 @@ WSGI_APPLICATION = 'bake_cake.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
+DATABASE = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 db_from_env = dj_database_url.config()
-DATABASES['default'].update(db_from_env)
+DATABASE['default'].update(db_from_env)
 
 
 # Password validation
