@@ -371,13 +371,13 @@ def handle_authorization(update, context):
     chat_id = update.message.chat_id
     client = get_client_entry(chat_id, user)
 
-    if not(client.pd_proccessing_consent):
+    if not client.pd_proccessing_consent:
         return request_consent_processing(update, context, chat_id)
 
-    if not(client.phone):
+    if not client.phone:
         return request_for_input_phone(update)
 
-    if not(client.address):
+    if not client.address:
         return request_for_input_address(update)
 
     return invite_user_to_main_menu(update)
