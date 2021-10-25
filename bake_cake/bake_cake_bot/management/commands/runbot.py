@@ -108,7 +108,7 @@ def create_options_keyboard(category):
     if not category.is_mandatory:
         keyboard.append([KeyboardButton(text='Пропустить')])
 
-    text_template = '{name} +{price} руб. #{option_id}'
+    text_template = '{name} + {price} руб. #{option_id}'
 
     options = category.options.all()
     logger.info(f'Категория {category}: {options}')
