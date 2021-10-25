@@ -16,7 +16,7 @@ bot.
 import logging
 
 from telegram import Update
-from telegram import KeyboardButton, ReplyKeyboardMarkup
+from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext, ConversationHandler
 
@@ -152,7 +152,10 @@ def accept_consent_processing():
         [KeyboardButton(text='Принять соглашение')],
         [KeyboardButton(text='Отказаться')]
     ]
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    return ReplyKeyboardMarkup(
+            keyboard,
+            resize_keyboard=True,
+        )
 
 
 # Function to get or post data to DB
@@ -247,7 +250,9 @@ def delete_cake(cake_id):
     return
 
 
-def request_consent_processing(update):
+def request_consent_processing(update, context, chat_id):
+    with open("files/personal_data_policy.pdf", 'rb') as file:
+        context.bot.send_document(chat_id=chat_id, document=file)
     update.message.reply_text(
         text='Пожалуйста, дайте согласине на обработку персональных данных',
         reply_markup=accept_consent_processing()
@@ -259,7 +264,8 @@ def request_consent_processing(update):
 def request_for_input_phone(update):
     logger.info('No phone in DB')
     update.message.reply_text(
-        text='Пожалуйста, укажите номер телефона'
+        text='Пожалуйста, укажите номер телефона',
+        reply_markup=ReplyKeyboardRemove()
     )
     return States.INPUT_PHONE
 
@@ -267,7 +273,8 @@ def request_for_input_phone(update):
 def request_for_input_address(update):
     logger.info('No address in DB')
     update.message.reply_text(
-        text='Пожалуйста, укажите адрес доставки')
+        text='Пожалуйста, укажите адрес доставки'
+    )
     return States.INPUT_ADDRESS
 
 
@@ -363,10 +370,11 @@ def handle_return_to_menu(update, context):
 
 def handle_authorization(update, context):
     user = update.effective_user
-    client = get_client_entry(update.message.chat_id, user)
+    chat_id = update.message.chat_id
+    client = get_client_entry(chat_id, user)
 
     if not(client.pd_proccessing_consent):
-        return request_consent_processing(update)
+        return request_consent_processing(update, context, chat_id)
 
     if not(client.phone):
         return request_for_input_phone(update)
