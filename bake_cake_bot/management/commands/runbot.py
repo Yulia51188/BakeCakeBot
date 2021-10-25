@@ -360,6 +360,18 @@ def invite_to_confirm_order(update, order):
 
 
 # States handlers
+def handle_stop(update, context):
+    global _current_cake_id
+    global _category_index
+    global _current_order_id
+
+    _current_cake_id = None
+    _category_index = None
+    _current_order_id = None
+
+    return ConversationHandler.END
+
+
 def handle_return_to_menu(update, context):
     global _category_index
     global _current_cake_id
@@ -738,7 +750,8 @@ def run_bot(tg_token) -> None:
             MessageHandler(
                 Filters.text & ~Filters.command,
                 handle_not_understand
-            )
+            ),
+            CommandHandler("stop", handle_stop)
         ],
         allow_reentry=True,
     )
