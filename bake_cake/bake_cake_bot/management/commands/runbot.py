@@ -486,7 +486,7 @@ def handle_create_cake(update, context):
 
 def handle_skip_option(update, context):
     global _option_categories
-    return handle_skip_option(update, len(_option_categories))
+    return get_next_category(update, len(_option_categories))
 
 
 def send_finish_cake(update):
