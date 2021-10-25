@@ -558,6 +558,14 @@ def handle_address_change(update, context):
 
 
 def start(update, context):
+    global _current_cake_id
+    global _category_index
+    global _current_order_id
+
+    _current_cake_id = None
+    _category_index = None
+    _current_order_id = None
+    
     user = update.effective_user
     update.message.reply_text(
         text=f'Привет, {user.first_name}!',
@@ -566,6 +574,7 @@ def start(update, context):
 
 
 def handle_not_understand(update, context):
+    
     update.message.reply_text(
         text='Извините, но я вас не понял :(',
     )
@@ -693,6 +702,7 @@ def run_bot(tg_token) -> None:
                 handle_not_understand
             )
         ],
+        allow_reentry=True,
     )
 
     dispatcher.add_handler(conv_handler)
