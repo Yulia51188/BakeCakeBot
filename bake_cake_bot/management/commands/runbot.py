@@ -410,9 +410,10 @@ def handle_consent_processing(update, context):
 
 
 def handle_phone_input(update, context):
+    input_phone_number = update.message.text
     if not phonenumbers.is_valid_number(
         phonenumbers.parse(
-            update.message.text,
+            input_phone_number,
             "RU"
         )
     ):
@@ -421,7 +422,7 @@ def handle_phone_input(update, context):
         )
         return States.INPUT_PHONE
 
-    client = add_phone_to_client(update.message.chat_id, update.message.text)
+    client = add_phone_to_client(update.message.chat_id, input_phone_number)
 
     update.message.reply_text(
         f'В профиль добавлен телефон для связи: {client.phone}',
@@ -551,7 +552,19 @@ def handle_request_other_phone(update, context):
 def handle_phone_change(update, context):
     global _current_order_id
 
-    client = add_phone_to_client(update.message.chat_id, update.message.text)
+    input_phone_number = update.message.text
+    if not phonenumbers.is_valid_number(
+        phonenumbers.parse(
+            input_phone_number,
+            "RU"
+        )
+    ):
+        update.message.reply_text(
+            text='Введите корректрый номер телефона'
+        )
+        return States.INPUT_PHONE
+
+    client = add_phone_to_client(update.message.chat_id, input_phone_number)
 
     update.message.reply_text(
         f'В профиль добавлен телефон для связи: {client.phone}',
