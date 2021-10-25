@@ -43,24 +43,17 @@ _current_order_id = None
 
 
 class States(Enum):
-    AUTHORIZATION = 0
-    LAYERS = 1
-    FORM = 2
-    TOPPING = 3
-    BERRIES = 4
-    DECOR = 5
-    LETTERING = 6
-    ADDRESS = 7
-    CLIENT_MAIN_MENU = 8
-    INPUT_PHONE = 9
-    INPUT_ADDRESS = 10
-    ORDER_DETAILS = 11
-    CREATE_CAKE = 12
-    FINISH_CAKE = 13
-    ORDERING = 14
-    CHANGE_PHONE = 15
-    CHANGE_ADDRESS = 16
-    CONSENT_PROCESSING = 17
+    CLIENT_MAIN_MENU = 0
+    INPUT_PHONE = 1
+    INPUT_ADDRESS = 2
+    ORDER_DETAILS = 3
+    CREATE_CAKE = 4
+    FINISH_CAKE = 5
+    ORDERING = 6
+    CHANGE_PHONE = 7
+    CHANGE_ADDRESS = 8
+    CONSENT_PROCESSING = 9
+    INPUT_INSCRIPTION = 10
 
 
 def parse_order_id(input_string):
