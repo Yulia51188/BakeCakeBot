@@ -243,6 +243,22 @@ def delete_cake(cake_id):
     return
 
 
+def add_inscription_to_cake(cake_id, text):
+    cake = Cake.objects.get(id=cake_id)
+    cake.text = text
+    cake.save()
+    return cake
+
+
+def check_with_inscription(cake_id):
+    cake = Cake.objects.prefetch_related('options').get(id=cake_id)
+    inscription = Option.objects.filter(name__contains='надпись').first()
+    logger.info(f'Find option with inscription: {inscription}')
+    logger.info(f'Cake includes inscription: {inscription in cake.options.all()}')
+    return (inscription in cake.options.all())
+
+
+# Functions to send user standard messages
 def request_consent_processing(update, context, chat_id):
     with open("files/personal_data_policy.pdf", 'rb') as file:
         context.bot.send_document(chat_id=chat_id, document=file)
@@ -253,7 +269,6 @@ def request_consent_processing(update, context, chat_id):
     return States.CONSENT_PROCESSING
 
 
-# Functions to send user standard messages
 def request_for_input_phone(update):
     logger.info('No phone in DB')
     update.message.reply_text(
@@ -291,15 +306,14 @@ def send_option_choices(update, category):
 
 
 def get_next_category(update, category_number):
-
+    global _current_cake_id
     global _category_index
     _category_index += 1
 
     logger.info(f'Next {_category_index}/{len(_option_categories)}')
 
     if _category_index >= len(_option_categories):
-        invite_to_ordering(update)
-        return States.FINISH_CAKE
+        return invite_to_ordering(update)
 
     send_option_choices(update, _option_categories[_category_index])
     return States.CREATE_CAKE
@@ -312,11 +326,12 @@ def invite_to_ordering(update):
     _category_index = None
     logger.info('Options has been chosen')
 
-    update.message.reply_text(
-        text='Торт готов!',
-        reply_markup=create_to_order_keyboard()
-    )
-    return
+    if check_with_inscription(_current_cake_id):
+        update.message.reply_text('Введите надпись для торта')
+        return States.INPUT_INSCRIPTION
+    
+    send_finish_cake(update)
+    return States.FINISH_CAKE
 
 
 def send_order_info(update, order):
@@ -471,14 +486,25 @@ def handle_create_cake(update, context):
 
 def handle_skip_option(update, context):
     global _option_categories
-    return get_next_category(update, len(_option_categories))
+    return handle_skip_option(update, len(_option_categories))
 
 
-def handle_finish_cake(update, context):
+def send_finish_cake(update):
     update.message.reply_text(
-        text='Торт готов!',
+        text='Торт собран! Можно переходить к оформлению заказа',
+        reply_markup=create_to_order_keyboard()
     )
     return States.FINISH_CAKE
+
+
+def handle_add_inscription(update, context):
+    global _current_cake_id  
+    logger.info(f'Get cake inscription text: {update.message.text}')
+    cake = add_inscription_to_cake(_current_cake_id, update.message.text)
+    update.message.reply_text(
+        text=f'Добавлена надпись на торте: "{cake.text}"',
+    )    
+    return send_finish_cake(update)
 
 
 def handle_create_order(update, context):
@@ -637,6 +663,12 @@ def run_bot(tg_token) -> None:
                     Filters.regex('руб. #'),
                     handle_create_cake
                 ),
+            ],
+            States.INPUT_INSCRIPTION: [
+                MessageHandler(
+                    Filters.text & ~Filters.command,
+                    handle_add_inscription
+                ),               
             ],
             States.FINISH_CAKE: [
                 MessageHandler(
