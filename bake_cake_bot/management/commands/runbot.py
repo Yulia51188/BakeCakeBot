@@ -151,6 +151,13 @@ def accept_consent_processing():
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
+def user_registration():
+    keyboard = [
+        [KeyboardButton(text='Зарегистрироваться')],
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
 # Function to get or post data to DB
 def create_new_order(cake_id, chat_id):
     cake = Cake.objects.get(id=cake_id)
@@ -408,7 +415,13 @@ def handle_consent_processing(update, context):
     if client_input == 'Принять соглашение':
         consent_processing = True
     elif client_input == 'Отказаться':
-        consent_processing = False
+        update.message.reply_text(
+            text='Чтобы начать пользоваться ботом необходимо пройти регистрацию',
+            reply_markup=user_registration()
+        )
+        return States.CONSENT_PROCESSING
+    elif client_input == 'Зарегистрироваться':
+        return handle_authorization(update, context)
     else:
         return handle_not_understand(update, context)
 
@@ -624,13 +637,6 @@ def handle_not_understand(update, context):
     )
 
 
-def cancel_handler(update, context):
-    update.message.reply_text(
-        'Очень жаль, что вы отменили заказ :((. Возвращайтесь!'
-    )
-    return ConversationHandler.END
-
-
 def help_command(update, context) -> None:
     update.message.reply_text('Help!')
 
@@ -693,7 +699,7 @@ def run_bot(tg_token) -> None:
                 MessageHandler(
                     Filters.text & ~Filters.command,
                     handle_add_inscription
-                ),               
+                ),
             ],
             States.FINISH_CAKE: [
                 MessageHandler(
